@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Мапа повітряних тривог — Україна (без токена)</title>
+  <title>Повітряні тривоги — Україна (відкриті дані)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
@@ -18,9 +18,7 @@
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — Україна</h1>
-        <p class="text-sm text-gray-500">
-          Дані без токена • рівень областей • автооновлення кожні 20 секунд
-        </p>
+        <p class="text-sm text-gray-500">Відкриті дані без токена • рівень областей • автооновлення кожні 20 секунд</p>
       </div>
       <div class="text-right text-xs text-gray-500">
         Оновлено: <span id="updated" class="mono">—</span><br />
@@ -38,120 +36,97 @@
         </span>
       </div>
       <div class="mt-2 p-3 rounded-xl bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 text-xs">
-        Примітка: публічні безключові джерела зазвичай повертають лише регіональний рівень (без переліку міст/громад).
+        Перелік міст і громад наразі недоступний з відкритих безключових джерел; відображається рівень областей.
       </div>
     </section>
 
     <div id="list" class="grid gap-4"></div>
 
     <footer class="mt-10 text-xs text-gray-500">
-      Джерело: публічний обгортковий API <span class="underline">siren.pp.ua</span> (без токена), який використовує інтеграція Home Assistant “Ukraine Alarm”. 
-      За потреби можна підключити інше відкрите джерело (див. <code>ADAPTER.parse()</code>). :contentReference[oaicite:3]{index=3}
+      Джерело: https://ubilling.net.ua/aerialalerts/ (без токена). Можна змінити адресу у змінній ENDPOINT.
     </footer>
   </div>
 
   <script>
-    // ==== НАЛАШТУВАННЯ ДЖЕРЕЛА ДАНИХ (без токена) ====
-    // За замовчуванням намагаємось читати JSON із публічного API-обгортки (без ключа).
-    // Якщо у тебе інша відкрита URL-адреса з подібною структурою — заміни ENDPOINT та адаптер.
-    const KYIV_TZ = "Europe/Kyiv";
-    const POLL_MS = 20000;
+    const KYIV_TZ="Europe/Kyiv";
+    const POLL_MS=20000;
+    const ENDPOINT="https://ubilling.net.ua/aerialalerts/";
 
-    // Приклад відкритої кінцевої точки (публічна обгортка без токена).
-    // У деяких розгортаннях шлях може відрізнятись; за потреби заміни на свій mirror/endpoint.
-    const ENDPOINT = "https://siren.pp.ua/api/states"; // рівень областей (без токена)
-
-    // Адаптер під очікуваний формат: [{ id, name, alert, changed }]
-    const ADAPTER = {
-      async load() {
-        const res = await fetch(ENDPOINT, { headers: { "Accept": "application/json" }, cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
+    const ADAPTER={
+      async load(){
+        const r=await fetch(ENDPOINT,{headers:{"Accept":"application/json"},cache:"no-store"});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        return r.json();
       },
-      parse(json) {
-        // Підтримка варіантів: {states:[...]} або просто [...]
-        const states = Array.isArray(json?.states) ? json.states : Array.isArray(json) ? json : [];
-        // Очікуємо поля name (назва області українською), alert (true/false), changed (ISO-дата)
-        return states.map(s => ({
-          id: s.id ?? s.state_id ?? null,
-          name: s.name ?? s.title ?? "Невідома область",
-          alert: Boolean(s.alert),
-          changed: s.changed ?? s.date ?? null
-        }));
+      parse(json){
+        const raw=json&&json.states?json.states:{};
+        const out=[];
+        if(Array.isArray(raw)){
+          for(const s of raw){
+            out.push({
+              id:s.id??null,
+              name:s.name??s.title??"Невідома область",
+              alert:Boolean(s.alertnow??s.alert),
+              changed:s.changed??s.lastchange??s.date??null
+            });
+          }
+        }else if(typeof raw==="object"&&raw){
+          for(const [name,s] of Object.entries(raw)){
+            out.push({
+              id:s.id??null,
+              name:name,
+              alert:Boolean(s.alertnow??s.alert),
+              changed:s.changed??s.lastchange??s.date??null
+            });
+          }
+        }
+        out.sort((a,b)=>a.name.localeCompare(b.name,"uk"));
+        return out;
       }
     };
 
-    function fmtTime(s) {
-      try {
-        const d = new Date(s);
-        return isNaN(d) ? "—" : d.toLocaleString("uk-UA", { timeZone: KYIV_TZ, hour12: false });
-      } catch { return "—"; }
+    function fmtTime(s){
+      try{
+        const d=new Date(s);
+        return isNaN(d)?"—":d.toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false});
+      }catch{return "—"}
     }
 
-    function render(states) {
-      const active = states.filter(s => s.alert);
-      active.sort((a,b) => a.name.localeCompare(b.name, "uk"));
-
-      const container = document.getElementById("list");
-      container.innerHTML = "";
-
-      if (active.length === 0) {
-        container.innerHTML = `
-          <section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
-            <p class="text-sm text-gray-600 dark:text-gray-400">Наразі немає активних повітряних тривог на рівні областей.</p>
-          </section>`;
-      } else {
-        for (const s of active) {
-          const card = document.createElement("section");
-          card.className = "rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
-
-          const header = document.createElement("div");
-          header.className = "flex items-start justify-between gap-3";
-          header.innerHTML = `
-            <div>
-              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                <span class="pulse-dot" style="color:#ef4444"></span>${s.name}
-              </h2>
-              <div class="mt-1 flex flex-wrap gap-2 text-xs">
-                <span class="inline-flex items-center rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">Повітряна тривога</span>
-              </div>
-            </div>
-            <div class="text-xs text-gray-500 text-right">
-              початок/зміна: <span class="mono">${fmtTime(s.changed)}</span>
-            </div>
-          `;
+    function render(states){
+      const active=states.filter(s=>s.alert);
+      active.sort((a,b)=>a.name.localeCompare(b.name,"uk"));
+      const container=document.getElementById("list");
+      container.innerHTML="";
+      if(active.length===0){
+        container.innerHTML='<section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"><p class="text-sm text-gray-600 dark:text-gray-400">Наразі немає активних повітряних тривог на рівні областей.</p></section>';
+      }else{
+        for(const s of active){
+          const card=document.createElement("section");
+          card.className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
+          const header=document.createElement("div");
+          header.className="flex items-start justify-between gap-3";
+          header.innerHTML='<div><h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2"><span class="pulse-dot" style="color:#ef4444"></span>'+s.name+'</h2><div class="mt-1 flex flex-wrap gap-2 text-xs"><span class="inline-flex items-center rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">Повітряна тривога</span></div></div><div class="text-xs text-gray-500 text-right">початок/зміна: <span class="mono">'+fmtTime(s.changed)+'</span></div>';
           card.appendChild(header);
-
-          const body = document.createElement("div");
-          body.className = "mt-3";
-          body.innerHTML = `
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-              На жаль, публічне безключове джерело надає лише регіональний рівень. Перелік міст/громад області наразі недоступний без офіційного ключа API.
-            </p>`;
+          const body=document.createElement("div");
+          body.className="mt-3";
+          body.innerHTML='<p class="text-sm text-gray-600 dark:text-gray-400">Показано регіональний рівень. Якщо з’явиться публічний фід міст/громад без ключів, його можна підключити.</p>';
           card.appendChild(body);
-
           container.appendChild(card);
         }
       }
-
-      document.getElementById("regionsCount").textContent = active.length;
-      document.getElementById("updated").textContent =
-        new Date().toLocaleString("uk-UA", { timeZone: KYIV_TZ, hour12: false });
+      document.getElementById("regionsCount").textContent=active.length;
+      document.getElementById("updated").textContent=new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false});
     }
 
-    async function tick() {
-      try {
-        const json = await ADAPTER.load();
-        const states = ADAPTER.parse(json);
+    async function tick(){
+      try{
+        const json=await ADAPTER.load();
+        const states=ADAPTER.parse(json);
         render(states);
-      } catch (e) {
-        console.error(e);
-        document.getElementById("list").innerHTML = `
-          <div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">
-            Не вдалося завантажити дані. Перевір джерело <code>${ENDPOINT}</code> або заміни його на іншу відкриту адресу у змінній <code>ENDPOINT</code>.
-          </div>`;
-      } finally {
-        setTimeout(tick, POLL_MS);
+      }catch(e){
+        document.getElementById("list").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Перевір адресу '+ENDPOINT+'.</div>';
+      }finally{
+        setTimeout(tick,POLL_MS);
       }
     }
 
