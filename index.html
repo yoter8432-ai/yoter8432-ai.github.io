@@ -1,106 +1,72 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Карта тривог — Дніпропетровська область</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset="utf-8" />
+  <title>Витяг Дніпропетровських районів (ADM2) → GeoJSON</title>
   <style>
-    html,body,#map{height:100%;margin:0}
-    #map{height:100vh}
-    .legend{background:#fff;padding:10px;line-height:1.5em;border-radius:8px;box-shadow:0 0 6px rgba(0,0,0,.15)}
-    .legend span{display:inline-block;width:14px;height:14px;margin-right:6px}
-    .info{background:#fff;padding:8px;border-radius:6px;box-shadow:0 0 6px rgba(0,0,0,.12)}
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    button { padding: .7rem 1rem; border-radius: .6rem; border: 1px solid #ddd; cursor: pointer; }
+    pre { background:#f6f8fa; padding:1rem; border-radius:.6rem; overflow:auto }
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <h1>Створити <code>dnipro_districts.geojson</code></h1>
+  <p>Натисни кнопку — з офіційного GeoBoundaries ADM2 буде витягнута тільки Дніпропетровська область і збережена у файл.</p>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <button id="go">Завантажити файл</button>
+  <p id="status"></p>
+
   <script>
-    // ---------- Настройки ----------
-    // Центр и zoom для Дніпропетровської області
-    const MAP_CENTER = [48.5, 35.0];
-    const MAP_ZOOM = 8;
+    // Офіційний GeoJSON усіх районів України (ADM2)
+    // Джерело: HDX / GeoBoundaries
+    const ADM2_URL = "https://geoboundaries.org/gbRequest.html?ISO=UKR&ADM=ADM2"; // редірект на актуальний geojson
+    // Деякі версії мають поле adm1_name або shapeGroup для області; підтримуємо обидва варіанти
+    const DNIPRO_MATCHES = ["Dnipropetrovska", "Dnipropetrovsk", "Дніпропетровська"];
 
-    // Пути к файлам (замени на реальные URL/путь в проекте)
-    // 1) GeoJSON с район/громадами Дніпропетровської області
-    //    Подсказка: возьми детальный GeoJSON с административными границами (raions/hromadas)
-    //    и помести рядом с сайтом как dnipro_districts.geojson
-    const DISTRICTS_GEOJSON_URL = './dnipro_districts.geojson';
+    const $status = document.getElementById("status");
+    document.getElementById("go").onclick = async () => {
+      $status.textContent = "Завантаження ADM2…";
+      try {
+        // 1) Отримуємо весь ADM2 GeoJSON
+        const res = await fetch(ADM2_URL, { redirect: "follow" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const all = await res.json();
 
-    // 2) Endpoint с данными по тревогам для районов.
-    //    ВАЖНО: формат ответа ожидается как массив объектов вида:
-    //    [{"district_name":"Dnipro","status":"alert","since":"2025-09-25T12:34:00Z"}, ...]
-    //    Если API возвращает другие поля — поменяй соответствие в mapAlertToDistrict().
-    const ALERTS_API_URL = 'https://api.alerts.in.ua/v1/regions/9/alerts/active.json?token=YOUR_APP_TOKEN';
+        // 2) Фільтруємо тільки Дніпропетровську область
+        if (!all || !Array.isArray(all.features)) throw new Error("Неочікуваний формат GeoJSON");
+        const features = all.features.filter(f => {
+          const p = f.properties || {};
+          const a1 = (p.adm1_name || p.shapeGroup || p.region || "").toString();
+          return DNIPRO_MATCHES.some(s => a1.toLowerCase().includes(s.toLowerCase()));
+        });
 
-    // Цвета по статусу
-    const COLORS = {
-      'no_alert': '#4CAF50', // зелёный
-      'alert': '#E53935',    // красный
-      'unknown': '#9E9E9E'   // серый
+        if (!features.length) throw new Error("Не знайдено районів Дніпропетровської області у цьому наборі");
+
+        // 3) Нормалізуємо назви та додаємо uid по порядку (можеш замінити на свої)
+        const norm = features.map((f, i) => {
+          const p = f.properties || {};
+          const name = p.shapeName || p.name || p.adm2_name || "Без назви";
+          f.properties = { uid: i + 1, name };
+          return f;
+        });
+
+        const out = { type: "FeatureCollection", features: norm };
+
+        // 4) Скачуємо як файл dnipro_districts.geojson
+        const blob = new Blob([JSON.stringify(out)], { type: "application/geo+json" });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement("a"), { href: url, download: "dnipro_districts.geojson" });
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+
+        $status.textContent = `Готово: ${norm.length} районів збережено у dnipro_districts.geojson`;
+      } catch (e) {
+        console.error(e);
+        $status.textContent = "Помилка: " + e.message;
+      }
     };
-
-    // ---------- Инициализация карты ----------
-    const map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    // Контейнеры
-    let districtsLayer;
-    let districtsData = null;
-    let alertsData = null;
-
-    // Загрузка GeoJSON с районами
-    fetch(DISTRICTS_GEOJSON_URL)
-      .then(r => r.json())
-      .then(geojson => {
-        districtsData = geojson;
-
-        // Создаём слой и добавляем на карту
-        districtsLayer = L.geoJSON(districtsData, {
-          style: d => defaultStyle(d),
-          onEachFeature: onEachDistrict
-        }).addTo(map);
-
-        // Подгружаем текущие тревоги и применяем стили
-        loadAlertsAndStyle();
-
-        // Центруем карту по областному полигону, если есть bounds
-        try { map.fitBounds(districtsLayer.getBounds(), {padding:[20,20]}); } catch(e){/*ignore*/}
-      })
-      .catch(err => {
-        console.error('Ошибка загрузки GeoJSON районов:', err);
-        alert('Не удалось загрузить файл dnipro_districts.geojson. Помести его рядом с сайтом.');
-      });
-
-    // Простейший стиль по умолчанию
-    function defaultStyle(feature){
-      return {
-        weight: 1,
-        color: '#444',
-        fillColor: COLORS.no_alert,
-        fillOpacity: 0.6
-      };
-    }
-
-    // Применить стили для района в зависимости от статуса
-    function applyStyleToFeature(layer, status){
-      const color = status === 'alert' ? COLORS.alert : (status === 'no_alert' ? COLORS.no_alert : COLORS.unknown);
-      layer.setStyle({fillColor: color});
-    }
-
-    // Обработчик для каждого района
-    function onEachDistrict(feature, layer){
-      const name = feature.properties && (feature.properties.name || feature.properties.NA_UA || feature.properties.NAME);
-      layer.bindTooltip(name || 'Назва відсутня', {sticky:true});
-
-      layer.on('click', () => {
-        const props = feature.properties || {};
-        const status = getDistrictStatusByName(name) || 'unknown';
+  </script>
+</body>
+</html>
         const since = getDistrictAlertSince(name) || '';
 
         const html = `
