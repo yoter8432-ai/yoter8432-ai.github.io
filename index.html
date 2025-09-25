@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги — канал kpszsu</title>
+  <title>Повітряні тривоги з Telegram — перегляд каналів</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
@@ -11,47 +11,104 @@
     .pulse-dot::after{content:"";position:absolute;inset:-6px;border-radius:9999px;border:2px solid currentColor;opacity:.6;animation:pulse 1.5s infinite}
     @keyframes pulse{0%{transform:scale(.6);opacity:.6}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
     .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"} pre{white-space:pre-wrap;word-break:break-word}
+    .small{font-size:13px}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+  <div class="max-w-6xl mx-auto p-4 sm:p-6">
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — канал kpszsu</h1>
-        <p class="text-sm text-gray-500">Дані беруться з Telegram через RSSHub; ваш Cloudflare Worker виступає проксі з CORS.</p>
+        <h1 class="text-2xl sm:text-3xl font-bold">Перегляд Telegram-каналів — повітряні тривоги</h1>
+        <p class="text-sm text-gray-500">Беремо пости через RSSHub + ваш Cloudflare Worker. Можна вказати будь-який канал, посилання або ID.</p>
       </div>
-      <div class="text-right text-xs text-gray-500">Оновлено: <span id="updated" class="mono">—</span></div>
+      <div class="text-right text-xs text-gray-500">
+        Оновлено: <span id="updated" class="mono">—</span><br />
+        Джерело: RSSHub через ваш Worker
+      </div>
     </header>
 
-    <section class="mb-4 flex gap-3 items-center">
-      <label class="text-xs text-gray-500">Канал (без @):</label>
-      <input id="channelInput" class="px-3 py-2 rounded-md border bg-white text-sm" value="kpszsu" />
-      <button id="loadBtn" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm">Завантажити</button>
-      <div class="ml-auto text-sm text-gray-500">Оновлення кожні <span id="intervalLabel">20</span> сек</div>
+    <section class="mb-4 grid gap-3 sm:grid-cols-2 items-end">
+      <div class="flex gap-2 items-center">
+        <label class="text-xs text-gray-500">Канал / ID / посилання</label>
+        <input id="channelInput" class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm w-[320px]" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або 123456789" />
+        <button id="loadBtn" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm">Завантажити</button>
+        <button id="forceBtn" class="px-3 py-2 rounded-md bg-gray-600 text-white text-sm">Примусово оновити</button>
+      </div>
+
+      <div class="flex gap-3 items-center justify-end">
+        <label class="text-xs text-gray-500">Постів:</label>
+        <select id="countSelect" class="px-2 py-2 rounded-md text-sm">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+        </select>
+
+        <label class="text-xs text-gray-500">Інтервал, сек:</label>
+        <input id="intervalInput" type="number" min="10" value="30" class="w-20 px-2 py-2 rounded-md text-sm" />
+
+        <label class="inline-flex items-center gap-2 text-xs text-gray-500">
+          <input id="showRawAlways" type="checkbox" checked class="h-4 w-4" />
+          Показувати сирі пости завжди
+        </label>
+      </div>
     </section>
 
     <div id="summary" class="mb-4"></div>
+
     <div id="out" class="grid gap-4"></div>
+
     <div id="diag" class="mt-4 text-xs text-red-600 dark:text-red-400"></div>
 
-    <footer class="mt-8 text-xs text-gray-500">Якщо з'являться помилки — дивись інструкцію діагностики нижче.</footer>
+    <footer class="mt-8 text-xs text-gray-500">
+      Порада: якщо бачите помилку 429 — збільшіть інтервал опитування до 60+ сек або використайте іншу інстанцію RSSHub у воркері.
+    </footer>
   </div>
 
   <script>
-    const WORKER_BASE="https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
-    const KYIV_TZ="Europe/Kyiv";
-    const POLL_MS=20000;
-    let POLL_TIMER=null;
-    const OBLASTS=["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
+    const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
+    const KYIV_TZ = "Europe/Kyiv";
 
-    function nowStr(){ try{ return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}) } catch(e){ return new Date().toString() } }
+    let POLL_MS = 30000;
+    let POLL_TIMER = null;
+
+    const OBLASTS = [
+      "Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька",
+      "Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська",
+      "Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська",
+      "м. Київ","м. Севастополь"
+    ];
+
+    function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch { return new Date().toString(); } }
+
+    function normalizeChannelInput(raw){
+      if(!raw) return "";
+      raw = raw.trim();
+      if(raw.startsWith("@")) raw = raw.slice(1);
+      try{
+        const u = new URL(raw);
+        const p = u.pathname.replace(/^\/+|\/+$/g,"");
+        if(p.length>0){
+          // якщо в URL вказано шлях до поста, беремо першу частину (channel)
+          return p.split("/")[0];
+        }
+        return raw;
+      }catch(e){
+        // не URL, повертаємо як є
+        return raw;
+      }
+    }
+
+    function buildWorkerUrl(channel){
+      return WORKER_BASE + encodeURIComponent(channel);
+    }
 
     function findOblastsInText(text){
       if(!text) return [];
-      const found=new Set();
-      const t=text.normalize("NFC");
+      const found = new Set();
+      const t = text.normalize("NFC");
       for(const o of OBLASTS){
-        const re=new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
+        const re = new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
         if(re.test(t)) found.add(o);
       }
       return Array.from(found);
@@ -59,12 +116,17 @@
 
     function extractSettlements(text){
       if(!text) return [];
-      const results=new Set();
-      const patterns=[/м\.\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/м\s+([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/смт\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/с\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g];
+      const results = new Set();
+      const patterns = [
+        /м\.\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /м\s+([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /смт\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /с\.?\s*([А-ЯІЇЄҐ][а-яїєґ'\- ]{1,60})/g
+      ];
       for(const p of patterns){
         let m;
         while((m=p.exec(text))!==null){
-          const name=m[1]?.trim();
+          const name = (m[1]||"").trim();
           if(name && name.length>1 && name.length<80) results.add(name);
         }
       }
@@ -72,38 +134,36 @@
     }
 
     function renderResults(groups, posts){
-      const out=document.getElementById("out");
-      out.innerHTML="";
-      const summary=document.getElementById("summary");
-      const regionsCount=Object.keys(groups).length;
-      summary.innerHTML='<div class="flex gap-3 items-center"><div class="inline-flex items-center rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"><span class="pulse-dot" style="color:#ef4444"></span>Областей згадано: <strong class="ml-2">'+regionsCount+'</strong></div><div class="text-sm text-gray-500 ml-3">Постів проаналізовано: <strong>'+posts.length+'</strong></div></div>';
+      const out = document.getElementById("out");
+      out.innerHTML = "";
+      const summary = document.getElementById("summary");
+      const regionsCount = Object.keys(groups).length;
+      summary.innerHTML = '<div class="flex gap-3 items-center"><div class="inline-flex items-center rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"><span class="pulse-dot" style="color:#ef4444"></span>Областей згадано: <strong class="ml-2">'+regionsCount+'</strong></div><div class="text-sm text-gray-500 ml-3">Постів проаналізовано: <strong>'+posts.length+'</strong></div></div>';
 
-      if(regionsCount===0){
-        out.innerHTML='<section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"><p class="text-sm text-gray-600 dark:text-gray-400">У текстах останніх постів не знайдено явних згадок областей. Нижче сирі пости.</p></section>';
-      } else {
+      if(Object.keys(groups).length>0){
         for(const oblast of Object.keys(groups).sort((a,b)=>a.localeCompare(b,"uk"))){
-          const block=document.createElement("section");
-          block.className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
-          const header=document.createElement("div");
-          header.className="flex items-center justify-between";
-          header.innerHTML='<h2 class="text-lg font-semibold">'+oblast+'</h2><div class="text-xs text-gray-500">знайдено згадок: <strong>'+groups[oblast].length+'</strong></div>';
+          const block = document.createElement("section");
+          block.className = "rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
+          const header = document.createElement("div");
+          header.className = "flex items-center justify-between";
+          header.innerHTML = '<h2 class="text-lg font-semibold">'+oblast+'</h2><div class="text-xs text-gray-500">знайдено згадок: <strong>'+groups[oblast].length+'</strong></div>';
           block.appendChild(header);
-          const list=document.createElement("ul");
-          list.className="mt-3 space-y-2";
+          const list = document.createElement("ul");
+          list.className = "mt-3 space-y-2";
           for(const item of groups[oblast]){
-            const li=document.createElement("li");
-            li.className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800";
-            const title=document.createElement("div");
-            title.className="text-sm font-medium";
-            title.innerHTML=(item.title?item.title.replace(/&nbsp;/g," "):"")+' <span class="text-xs text-gray-500">· '+new Date(item.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</span>';
-            const text=document.createElement("div");
-            text.className="mt-1 text-sm text-gray-700 dark:text-gray-300";
-            text.innerHTML=(item.description||"").replace(/<\/?[^>]+(>|$)/g,"");
-            const foundSettlements=extractSettlements((item.title||"")+" "+(item.description||""));
+            const li = document.createElement("li");
+            li.className = "p-3 rounded-lg bg-gray-50 dark:bg-gray-800";
+            const title = document.createElement("div");
+            title.className = "text-sm font-medium";
+            title.innerHTML = (item.title?item.title.replace(/&nbsp;/g," "):"") + ' <span class="text-xs text-gray-500">· ' + new Date(item.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}) + '</span>';
+            const text = document.createElement("div");
+            text.className = "mt-1 text-sm text-gray-700 dark:text-gray-300";
+            text.innerHTML = (item.description||"").replace(/<\/?[^>]+(>|$)/g,"");
+            const foundSettlements = extractSettlements((item.title||"")+" "+(item.description||""));
             if(foundSettlements.length>0){
-              const sdiv=document.createElement("div");
-              sdiv.className="mt-2 text-xs text-gray-600 dark:text-gray-400";
-              sdiv.innerHTML="Виявлені населені пункти: <strong>"+foundSettlements.join(", ")+"</strong>";
+              const sdiv = document.createElement("div");
+              sdiv.className = "mt-2 text-xs text-gray-600 dark:text-gray-400";
+              sdiv.innerHTML = "Виявлені населені пункти: <strong>"+foundSettlements.join(", ")+"</strong>";
               li.appendChild(title);
               li.appendChild(text);
               li.appendChild(sdiv);
@@ -118,67 +178,89 @@
         }
       }
 
-      const rawBlock=document.createElement("section");
-      rawBlock.className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 mt-4 text-xs text-gray-500";
-      rawBlock.innerHTML="<strong>Сирі останні пости (для перевірки)</strong>";
-      for(const p of posts){
-        const pdiv=document.createElement("div");
-        pdiv.className="mt-3 p-2 rounded bg-gray-50 dark:bg-gray-900";
-        pdiv.innerHTML='<div class="text-[13px] font-medium">'+(p.title||"")+'</div><pre class="mt-1 text-[13px]">'+((p.description||"").replace(/<\/?[^>]+(>|$)/g,""))+'</pre><div class="mt-1 text-[12px] text-gray-400">Дата: '+new Date(p.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</div>';
-        rawBlock.appendChild(pdiv);
+      const rawBlock = document.createElement("section");
+      rawBlock.className = "rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 mt-4 text-xs text-gray-500";
+      rawBlock.innerHTML = "<strong>Сирі останні пости</strong>";
+      if(posts.length===0){
+        rawBlock.innerHTML += '<div class="mt-3 p-3 rounded bg-gray-50 dark:bg-gray-900 text-sm text-gray-600 dark:text-gray-300">Немає доступних постів або канал не публічний / заблокований для RSSHub.</div>';
+      } else {
+        for(const p of posts){
+          const pdiv = document.createElement("div");
+          pdiv.className = "mt-3 p-2 rounded bg-gray-50 dark:bg-gray-900";
+          pdiv.innerHTML = '<div class="text-[13px] font-medium">'+(p.title||"")+'</div><pre class="mt-1 text-[13px]">'+((p.description||"").replace(/<\/?[^>]+(>|$)/g,""))+'</pre><div class="mt-1 text-[12px] text-gray-400">Дата: '+new Date(p.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</div>';
+          rawBlock.appendChild(pdiv);
+        }
       }
       out.appendChild(rawBlock);
-      document.getElementById("updated").textContent=nowStr();
+      document.getElementById("updated").textContent = nowStr();
     }
 
     async function fetchFromWorker(channel){
-      const url=WORKER_BASE+encodeURIComponent(channel);
-      const r=await fetch(url,{cache:"no-store"});
+      const url = buildWorkerUrl(channel);
+      const r = await fetch(url, { cache: "no-store" });
       if(!r.ok) throw new Error("HTTP "+r.status);
       return r.json();
     }
 
     async function analyze(channel){
       try{
-        const data=await fetchFromWorker(channel);
-        const items=Array.isArray(data?.items)?data.items:(Array.isArray(data)?data:[]);
-        const posts=[];
-        for(const it of items.slice(0,30)){
-          posts.push({title:it.title||"",description:it.description||it.content||"",pubDate:it.pubDate||it.isoDate||new Date().toISOString()});
+        document.getElementById("diag").textContent = "";
+        const data = await fetchFromWorker(channel);
+        const items = Array.isArray(data?.items)?data.items:(Array.isArray(data)?data:[]);
+        const maxPosts = parseInt(document.getElementById("countSelect").value,10) || 20;
+        const posts = [];
+        for(const it of items.slice(0, maxPosts)){
+          posts.push({ title: it.title||"", description: it.description||it.content||"", pubDate: it.pubDate||it.isoDate||new Date().toISOString() });
         }
-        const groups={};
+
+        const groups = {};
         for(const p of posts){
-          const text=(p.title||"")+" "+(p.description||"");
-          const oblasts=findOblastsInText(text);
+          const text = (p.title||"")+" "+(p.description||"");
+          const oblasts = findOblastsInText(text);
           if(oblasts.length===0) continue;
           for(const o of oblasts){
             if(!groups[o]) groups[o]=[];
             groups[o].push(p);
           }
         }
-        renderResults(groups,posts);
-        document.getElementById("diag").textContent="";
+
+        renderResults(groups, posts);
       }catch(e){
-        document.getElementById("out").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
-        document.getElementById("diag").textContent=String(e);
+        document.getElementById("out").innerHTML = '<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
+        document.getElementById("diag").textContent = String(e);
       }
     }
 
-    document.getElementById("loadBtn").addEventListener("click",function(){
-      const ch=document.getElementById("channelInput").value.trim();
-      if(!ch) return alert("Вкажіть імʼя каналу (без @).");
+    function startPolling(channel){
       if(POLL_TIMER) clearInterval(POLL_TIMER);
-      analyze(ch);
-      POLL_TIMER=setInterval(()=>analyze(ch).catch(()=>{}),POLL_MS);
+      const sec = Math.max(10, parseInt(document.getElementById("intervalInput").value,10) || 30);
+      POLL_MS = sec * 1000;
+      POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), POLL_MS);
+      // Початковий виклик
+      analyze(channel).catch(()=>{});
+      document.getElementById("intervalInput").value = sec;
+    }
+
+    document.getElementById("loadBtn").addEventListener("click", function(){
+      const raw = document.getElementById("channelInput").value.trim();
+      if(!raw) return alert("Вкажіть канал або ID (наприклад kpszsu або https://t.me/kpszsu).");
+      const channel = normalizeChannelInput(raw);
+      startPolling(channel);
     });
 
-    document.getElementById("channelInput").addEventListener("keyup",function(e){
-      if(e.key==="Enter") document.getElementById("loadBtn").click();
+    document.getElementById("forceBtn").addEventListener("click", function(){
+      const raw = document.getElementById("channelInput").value.trim();
+      if(!raw) return;
+      const channel = normalizeChannelInput(raw);
+      analyze(channel).catch(()=>{});
     });
 
-    document.addEventListener("DOMContentLoaded",function(){
+    document.getElementById("channelInput").addEventListener("keyup", function(e){
+      if(e.key === "Enter") document.getElementById("loadBtn").click();
+    });
+
+    document.addEventListener("DOMContentLoaded", function(){
       document.getElementById("loadBtn").click();
-      document.getElementById("intervalLabel").textContent=(POLL_MS/1000).toString();
     });
   </script>
 </body>
