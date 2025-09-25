@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги — карта і список</title>
+  <title>Повітряні тривоги — карта (виправлено)</title>
   <meta name="color-scheme" content="light dark" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-3g6X0k6q3r3r0gC0Eo6qK2R7d2sZqjG2Zq6nFbbLkGdYh4m8l1T6y3H4wZqj3p9V" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root{
       --accent: #2563eb;
@@ -16,7 +16,6 @@
       --card-border: #e6edf6;
       --text: #0f1724;
       --muted-text: #475569;
-      --success: #059669;
       --new-bg: #fff7ed;
     }
     @media (prefers-color-scheme: dark){
@@ -28,7 +27,7 @@
         --muted-text: #9aa8bf;
       }
     }
-    body{ margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+    html,body{ height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
     .container{ max-width:1100px; margin:24px auto; padding:16px; }
     header{ display:flex; gap:12px; align-items:flex-end; }
     h1{ margin:0; font-size:20px; font-weight:700; }
@@ -41,7 +40,6 @@
     .btn.secondary{ background:#374151; }
     .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); }
     .big { padding:12px 16px; font-size:15px; }
-    .icon { width:18px; height:18px; display:inline-block; vertical-align:middle; }
     .status { display:flex; gap:12px; align-items:center; margin-top:12px; }
     .badge{ padding:6px 10px; border-radius:999px; background:rgba(37,99,235,0.08); color:var(--accent); font-weight:700; }
     #summary { margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
@@ -54,24 +52,25 @@
     .post .time{ color:var(--muted-text); font-size:13px; }
     .raw-block{ margin-top:12px; padding:10px; border:1px dashed var(--card-border); border-radius:8px; color:var(--muted-text); }
     .map-modal{ position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:stretch; justify-content:center; z-index:9999; }
-    .map-panel{ width:92%; max-width:1100px; margin:auto; background:var(--card-bg); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; height:82vh; box-shadow:0 10px 40px rgba(2,6,23,0.4); }
+    .map-panel{ width:94%; max-width:1200px; margin:auto; background:var(--card-bg); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; height:82vh; box-shadow:0 10px 40px rgba(2,6,23,0.4); }
     .map-header{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--card-border); }
     .map-body{ flex:1; position:relative; }
     #map{ width:100%; height:100%; }
-    .map-legend{ position:absolute; right:12px; top:12px; background:rgba(255,255,255,0.95); padding:8px; border-radius:8px; border:1px solid var(--card-border); font-size:13px; color:var(--text); z-index:400; }
-    .legend-row{ display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+    .map-legend{ position:absolute; right:12px; top:12px; padding:8px; border-radius:8px; font-size:13px; color:#fff; z-index:400; background:rgba(10,10,10,0.85); border:1px solid rgba(255,255,255,0.08); }
+    .legend-row{ display:flex; gap:8px; align-items:center; margin-bottom:6px; color:#fff; }
     .swatch{ width:20px; height:14px; border-radius:3px; display:inline-block; }
     .map-footer{ padding:8px 12px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .small{ font-size:13px; color:var(--muted-text); }
     .hidden{ display:none; }
+    @media (max-width:800px){ .controls{ flex-direction:column; align-items:stretch; } input[type="text"]{ width:100%; } }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <div>
-        <h1>Повітряні тривоги — канал через RSSHub</h1>
-        <div class="muted">Показує лише пости сьогодні, сортування: новіші зверху. Мапа: відмітити області з тривогами.</div>
+        <h1>Повітряні тривоги — карта</h1>
+        <div class="muted">Показує пости сьогодні. Відкрити карту для підсвітки областей.</div>
       </div>
       <div style="margin-left:auto; text-align:right;">
         <div class="small">Worker: <strong id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</strong></div>
@@ -81,15 +80,13 @@
     <section class="controls">
       <div class="left">
         <input id="channelInput" type="text" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або ID" />
-        <button id="loadBtn" class="btn big"><svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Завантажити</button>
-        <button id="forceBtn" class="btn secondary big"><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v2m0 10v2M5 12H3m18 0h-2M6.2 6.2L4.8 4.8m14.4 14.4l-1.4-1.4M6.2 17.8l-1.4 1.4m14.4-14.4l-1.4 1.4" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Примусово оновити</button>
-        <button id="resetBackoffBtn" class="btn ghost big">Скинути backoff</button>
-        <button id="openMapBtn" class="btn big" title="Показати карту України з областями тривог"><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1118 0z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Карта України, тривога</button>
+        <button id="loadBtn" class="btn big">Завантажити</button>
+        <button id="openMapBtn" class="btn big">Карта України, тривога</button>
       </div>
 
       <div class="right">
         <label class="small">Постів</label>
-        <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select>
+        <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option></select>
         <label class="small">Інтервал (c)</label>
         <input id="intervalInput" type="number" min="10" value="30" style="width:80px" />
         <label style="display:flex;align-items:center;gap:6px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
@@ -121,12 +118,12 @@
       <div class="map-body">
         <div id="map"></div>
         <div id="legend" class="map-legend">
-          <div style="font-weight:700; margin-bottom:6px">Легенда</div>
-          <div class="legend-row"><span class="swatch" style="background:#7a0177"></span> дуже багато згадок</div>
-          <div class="legend-row"><span class="swatch" style="background:#c51b8a"></span> багато</div>
-          <div class="legend-row"><span class="swatch" style="background:#f768a1"></span> помірно</div>
-          <div class="legend-row"><span class="swatch" style="background:#fa9fb5"></span> кілька згадок</div>
-          <div class="legend-row"><span class="swatch" style="background:#fde0ef"></span> 1 згадка</div>
+          <div style="font-weight:700; margin-bottom:6px; color:#fff">Легенда</div>
+          <div class="legend-row"><span class="swatch" style="background:#7a0177"></span><span> дуже багато згадок</span></div>
+          <div class="legend-row"><span class="swatch" style="background:#c51b8a"></span><span> багато</span></div>
+          <div class="legend-row"><span class="swatch" style="background:#f768a1"></span><span> помірно</span></div>
+          <div class="legend-row"><span class="swatch" style="background:#fa9fb5"></span><span> кілька згадок</span></div>
+          <div class="legend-row"><span class="swatch" style="background:#fde0ef"></span><span> 1 згадка</span></div>
         </div>
       </div>
       <div class="map-footer">
@@ -138,7 +135,7 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-TiC2q8b8oV4wMZtQeI9s2q3Vf7lXK6Qx3gM2mQ6v9Yf8h5G2r4H1s3Z0q7l2b6Vg" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
@@ -172,12 +169,10 @@
       { oblast: "м. Севастополь", noun: "Севастополь" }
     ];
 
-    const mapGeoUrl = "https://raw.githubusercontent.com/leakyMirror/map-of-ukraine/master/GeoJSON/ukraine.geo.json";
+    const mapGeoUrl = "https://cdn.jsdelivr.net/gh/leakyMirror/map-of-ukraine@master/GeoJSON/ukraine.geo.json";
 
     const channelInput = document.getElementById("channelInput");
     const loadBtn = document.getElementById("loadBtn");
-    const forceBtn = document.getElementById("forceBtn");
-    const resetBackoffBtn = document.getElementById("resetBackoffBtn");
     const openMapBtn = document.getElementById("openMapBtn");
     const closeMapBtn = document.getElementById("closeMapBtn");
     const retryGeoBtn = document.getElementById("retryGeoBtn");
@@ -273,7 +268,6 @@
       try{
         diag.textContent = "";
         loadBtn.setAttribute("disabled","true");
-        forceBtn.setAttribute("disabled","true");
 
         if(backoffMs > 0 && !options.force){
           diag.textContent = "Backoff активний: чекати " + Math.round(backoffMs/1000) + " c";
@@ -328,12 +322,12 @@
           const filterSavedToday = (saved||[]).filter(p => p.dateKyiv === todayKyiv);
           if(filterSavedToday.length>0){
             renderAll(filterSavedToday, channel, true);
-            setChannelStatus(false, "тимчасово недоступний", true);
+            setChannelStatus(false, "тимчасово недоступний");
             diag.textContent = "Немає постів за сьогодні; показано останні відомі пости сьогодні. Порожніх відповідей поспіль: " + consecutiveEmpty;
-            if(consecutiveEmpty >= 2) setChannelStatus(false, "закритий", false);
+            if(consecutiveEmpty >= 2) setChannelStatus(false, "закритий");
           } else {
             out.innerHTML = "<div style='padding:12px; border-radius:10px; background:#fff7ed; color:#92400e'>Сьогодні постів немає.</div>";
-            setChannelStatus(false, "закритий", false);
+            setChannelStatus(false, "закритий");
             diag.textContent = "За сьогодні постів не знайдено.";
           }
           backoffMs = backoffMs ? Math.min(backoffMs*2, 300000) : 5000;
@@ -342,7 +336,7 @@
       }catch(e){
         backoffMs = backoffMs ? Math.min(backoffMs*2, 300000) : 5000;
         localStorage.setItem("backoffMs", String(backoffMs));
-        setChannelStatus(false, "недоступний", true);
+        setChannelStatus(false, "недоступний");
         const todayKyiv = getKyivDateString(Date.now());
         const saved = loadLastPosts() || [];
         const filterSavedToday = (saved||[]).filter(p => p.dateKyiv === todayKyiv);
@@ -355,13 +349,10 @@
         }
       } finally {
         loadBtn.removeAttribute("disabled");
-        forceBtn.removeAttribute("disabled");
       }
     }
 
-    function setChannelStatus(open, text){
-      if(open){ statusText.textContent = text || "відкритий"; } else { statusText.textContent = text || "закритий"; }
-    }
+    function setChannelStatus(open, text){ if(open) statusText.textContent = text || "відкритий"; else statusText.textContent = text || "закритий"; }
 
     function renderAll(posts, channel, isStale){
       const groups = {};
@@ -471,30 +462,21 @@
       localStorage.setItem("lastChannel", channel);
       startPolling(channel);
     });
-    forceBtn.addEventListener("click", ()=> {
-      const raw = channelInput.value.trim();
-      if(!raw) return;
-      backoffMs = 0; localStorage.removeItem("backoffMs");
-      analyze(normalizeChannelInput(raw), {force:true});
-    });
-    resetBackoffBtn.addEventListener("click", ()=> {
-      backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
-      diag.textContent = "Backoff скинуто вручну.";
-      const raw = channelInput.value.trim();
-      if(raw) analyze(normalizeChannelInput(raw), {force:true});
-    });
 
     openMapBtn.addEventListener("click", async ()=> {
       mapModal.classList.remove("hidden");
       if(!map) initMap();
       if(!geoJsonData) await loadGeoJson();
       paintOblastsOnMap();
+      setTimeout(()=>{ if(map) map.invalidateSize(); }, 250);
     });
 
     closeMapBtn.addEventListener("click", ()=> { mapModal.classList.add("hidden"); });
 
     retryGeoBtn.addEventListener("click", async ()=> {
-      diag.textContent = "Завантаження гео..."; await loadGeoJson(); paintOblastsOnMap();
+      diag.textContent = "Завантаження гео...";
+      await loadGeoJson();
+      paintOblastsOnMap();
     });
 
     async function loadGeoJson(){
@@ -505,6 +487,7 @@
         diag.textContent = "";
       }catch(e){
         diag.textContent = "Помилка завантаження геоданих: " + String(e);
+        geoJsonData = null;
       }
     }
 
@@ -514,9 +497,7 @@
       geoLayer = L.geoJSON(null, { style: defaultStyle, onEachFeature: onEachFeature }).addTo(map);
     }
 
-    function defaultStyle(feature){
-      return { color: "#444", weight: 1, fillColor: "#f2f2f2", fillOpacity: 0.6 };
-    }
+    function defaultStyle(feature){ return { color: "#444", weight: 1, fillColor: "#f2f2f2", fillOpacity: 0.6 }; }
 
     function highlightStyle(count){
       if(count >= 10) return { fillColor: "#7a0177", fillOpacity: 0.85, color:"#4b0056", weight:1.6 };
@@ -535,7 +516,7 @@
           const props = feature.properties || {};
           const names = nameCandidates.join(" / ");
           const count = findOblastMentionCountByFeature(feature) || 0;
-          layer.bindPopup("<strong>"+ names +"</strong><div class='small'>Згадок: "+count+"</div>").openPopup();
+          layer.bindPopup("<strong>"+ names +"</strong><div class='small' style='color:#222'>Згадок: "+count+"</div>").openPopup();
         }
       });
     }
@@ -547,6 +528,7 @@
       if(p.NAME_1) out.push(p.NAME_1);
       if(p.name_uk) out.push(p.name_uk);
       if(p.admin) out.push(p.admin);
+      if(p.name_en) out.push(p.name_en);
       return out.filter(Boolean);
     }
 
@@ -569,17 +551,18 @@
         diag.textContent = "Геодані не завантажені.";
         return;
       }
-      geoLayer.clearLayers();
+      if(geoLayer) geoLayer.clearLayers();
       geoLayer = L.geoJSON(geoJsonData, { style: function(feature){
         const cnt = findOblastMentionCountByFeature(feature);
         if(cnt > 0) return highlightStyle(cnt);
         return defaultStyle(feature);
       }, onEachFeature: onEachFeature }).addTo(map);
-      map.fitBounds(geoLayer.getBounds(), { padding:[20,20] });
+      try{
+        map.fitBounds(geoLayer.getBounds(), { padding:[20,20] });
+      }catch(e){}
       mapSubtitle.textContent = "Оновлено: " + nowStr();
     }
 
-    // початкова ініціалізація: підвантажити збережені сьогодні пости
     document.addEventListener("DOMContentLoaded", ()=>{
       const lastFetched = localStorage.getItem("lastFetchedAt");
       if(lastFetched){
@@ -596,9 +579,7 @@
       if(initial) startPolling(initial);
     });
 
-    document.addEventListener("keydown", function(e){
-      if(e.key === "Escape") mapModal.classList.add("hidden");
-    });
+    function normalizeChannelInput(raw){ if(!raw) return ""; raw = raw.trim(); if(raw.startsWith("@")) raw = raw.slice(1); try{ const u = new URL(raw); const p = u.pathname.replace(/^\/+|\/+$/g,""); if(p.length>0) return p.split("/")[0]; return raw; }catch(e){ return raw; } }
   </script>
 </body>
 </html>
