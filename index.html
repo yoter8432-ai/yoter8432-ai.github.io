@@ -651,6 +651,36 @@
     }
     rawBlock.appendChild(frag);
   }
+  
+  function renderAndAnimateDiff(allPosts, newPosts, channel){
+  renderAll(allPosts, channel, false);
+  if(!newPosts || newPosts.length === 0) return;
+
+  const ids = new Set(newPosts.map(p => p.id || p.link || (p.title + p.pubDate)));
+
+  requestAnimationFrame(() => {
+    const nodes = document.querySelectorAll("#out [data-id]");
+    let firstSeen = null;
+
+    nodes.forEach(n => {
+      const nid = n.dataset.id;
+      if(ids.has(nid)){
+        n.style.transition = "box-shadow .3s, transform .3s, background-color .6s";
+        n.style.boxShadow = "0 10px 30px rgba(37,99,235,0.12)";
+        n.style.transform = "translateY(-6px)";
+        n.style.backgroundColor = "var(--new-bg)";
+        setTimeout(() => {
+          n.style.boxShadow = "";
+          n.style.transform = "";
+          n.style.backgroundColor = "";
+        }, 1600);
+        if(!firstSeen) firstSeen = n;
+      }
+    });
+
+    if(firstSeen) firstSeen.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
 
   async function loadGeoJson(){
     try{
