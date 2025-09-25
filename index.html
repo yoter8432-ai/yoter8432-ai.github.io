@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Telegram — Повітряні тривоги (області + міста)</title>
+  <title>Telegram — Повітряні тривоги (тільки сьогодні)</title>
   <meta name="color-scheme" content="light dark" />
   <style>
     :root{
@@ -32,40 +32,28 @@
         --new-border: #f59e0b;
       }
     }
-
-    body{
-      margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: var(--bg); color: var(--text); -webkit-font-smoothing:antialiased;
-    }
+    body{ margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); color: var(--text); -webkit-font-smoothing:antialiased; }
     .container{ max-width:1100px; margin:28px auto; padding:18px; }
-
-    header { display:flex; gap:12px; align-items:flex-end; }
+    header{ display:flex; gap:12px; align-items:flex-end; }
     h1{ margin:0; font-size:20px; font-weight:700; }
     .muted{ color:var(--muted-text); font-size:13px; }
-
     .controls{ margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--card-border); padding:12px; border-radius:12px; box-shadow: 0 6px 20px rgba(2,6,23,0.04); }
     .controls label{ font-size:13px; color:var(--muted-text); }
     input[type="text"], input[type="number"], select { border-radius:8px; padding:8px 10px; border:1px solid var(--card-border); background:transparent; color:var(--text); min-height:38px; }
     input::placeholder{ color:#9aa8bf; }
-
     .btn{ display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:10px; cursor:pointer; border:0; background:var(--accent); color:white; font-weight:600; box-shadow:0 6px 18px rgba(37,99,235,0.12); }
     .btn.secondary{ background:#374151; box-shadow:none; color:white; }
     .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); }
     .btn[disabled]{ opacity:.6; pointer-events:none; }
-
     .badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--pill-bg); color:var(--accent); font-weight:700; font-size:13px; }
-
     .status { display:flex; gap:10px; align-items:center; margin-top:12px; }
     #diag { color:var(--danger); font-size:13px; }
-
     #summary { margin-top:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
     .summary-pill{ background:var(--card-bg); border:1px solid var(--card-border); padding:8px 12px; border-radius:10px; font-weight:700; color:var(--text); display:inline-flex; gap:8px; align-items:center; }
-
     .region-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:12px; }
     .region-header { display:flex; justify-content:space-between; gap:10px; align-items:center; }
     .region-title{ font-weight:700; font-size:16px; }
     .region-meta{ color:var(--muted-text); font-size:13px; }
-
     .post{ border-radius:10px; padding:10px; margin-top:10px; border:1px solid rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:8px; background:transparent; }
     .post .top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .post .title{ font-weight:700; font-size:15px; color:var(--text); }
@@ -73,28 +61,21 @@
     .post .body{ color:var(--muted-text); font-size:14px; white-space:pre-wrap; }
     .post .actions{ display:flex; gap:8px; align-items:center; margin-top:6px; }
     .post a.open{ background:transparent; border:1px solid var(--card-border); color:var(--accent); padding:6px 10px; border-radius:8px; text-decoration:none; font-weight:600; }
-
     .raw-block { margin-top:16px; border-radius:10px; background:var(--card-bg); border:1px dashed var(--card-border); padding:12px; color:var(--muted-text); font-size:13px; }
-
     .post.new { background: var(--new-bg); border:2px solid var(--new-border); box-shadow: 0 8px 20px rgba(245,158,11,0.06); animation: newFlash 2.2s ease; }
     @keyframes newFlash { 0% { transform: translateY(-6px); } 40% { transform: translateY(0); } 100% { transform: translateY(0); } }
     .pill-new { font-size:12px; padding:4px 8px; background:var(--new-border); color:white; border-radius:999px; font-weight:700; }
-
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size:13px; color:var(--muted-text); }
     .small{ font-size:13px; color:var(--muted-text); }
-
-    @media (max-width:800px){
-      .controls{ flex-direction:column; align-items:stretch; }
-      input[type="text"]{ width:100%; }
-    }
+    @media (max-width:800px){ .controls{ flex-direction:column; align-items:stretch; } input[type="text"]{ width:100%; } }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <div>
-        <h1>Telegram — Повітряні тривоги</h1>
-        <div class="muted">Дані через RSSHub / ваш Cloudflare Worker. Нові пости зверху. Області і міста — у підсумку.</div>
+        <h1>Telegram — Повітряні тривоги (тільки сьогодні)</h1>
+        <div class="muted">Дані через RSSHub / Cloudflare Worker. Показувати лише пости сьогоднішнього дня (Kyiv time). Нові пости зверху.</div>
       </div>
       <div style="margin-left:auto; text-align:right;">
         <div class="mono">Оновлено: <span id="updated">—</span></div>
@@ -143,7 +124,6 @@
     const KYIV_TZ = "Europe/Kyiv";
     const EMPTY_THRESHOLD = 2;
     const MAX_BACKOFF_MS = 300000;
-    const INITIAL_POLL_MS = 30000;
 
     let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
     let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0;
@@ -166,29 +146,17 @@
     const citiesListEl = document.getElementById("citiesList");
     document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
 
-    function normalizeChannelInput(raw){
-      if(!raw) return "";
-      raw = raw.trim();
-      if(raw.startsWith("@")) raw = raw.slice(1);
-      try{
-        const u = new URL(raw);
-        const p = u.pathname.replace(/^\/+|\/+$/g,"");
-        if(p.length>0) return p.split("/")[0];
-        return raw;
-      }catch(e){ return raw; }
-    }
     function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch(e){ return new Date().toString(); } }
+    function normalizeChannelInput(raw){ if(!raw) return ""; raw=raw.trim(); if(raw.startsWith("@")) raw=raw.slice(1); try{ const u=new URL(raw); const p=u.pathname.replace(/^\/+|\/+$/g,""); if(p.length>0) return p.split("/")[0]; return raw; }catch(e){ return raw; } }
     function buildWorkerUrl(channel, extra){ const e = extra ? "&"+extra.replace(/^[&?]+/,"") : ""; return WORKER_BASE + encodeURIComponent(channel) + e; }
-    async function fetchFromWorker(channel, extra){
-      const url = buildWorkerUrl(channel, extra);
-      const r = await fetch(url, { cache: "no-store" });
-      if(!r.ok){
-        const txt = await r.text().catch(()=>"");
-        throw new Error("HTTP "+r.status + " " + (txt.slice? txt.slice(0,400) : String(txt)));
-      }
-      return r.json();
-    }
+    async function fetchFromWorker(channel, extra){ const url = buildWorkerUrl(channel, extra); const r = await fetch(url, { cache: "no-store" }); if(!r.ok){ const txt = await r.text().catch(()=> ""); throw new Error("HTTP "+r.status + " " + (txt.slice? txt.slice(0,400) : String(txt))); } return r.json(); }
 
+    function getKyivDateString(ms){
+      try{
+        const d = new Date(ms);
+        return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d);
+      }catch(e){ return ""; }
+    }
     function parseDateToMillis(pubDate){
       if(!pubDate) return 0;
       const d = Date.parse(pubDate);
@@ -203,29 +171,7 @@
       return 0;
     }
     function formatKyiv(pubDate){
-      try{
-        const d = new Date(pubDate);
-        if(isNaN(d)) return pubDate || "";
-        return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"});
-      }catch(e){ return pubDate||""; }
-    }
-
-    function saveLastPosts(posts){ try{ localStorage.setItem("lastPosts", JSON.stringify(posts)); localStorage.setItem("lastFetchedAt", new Date().toISOString()); localStorage.setItem("consecutiveEmpty","0"); consecutiveEmpty = 0; }catch(e){} }
-    function loadLastPosts(){ try{ const s = localStorage.getItem("lastPosts"); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
-
-    function setChannelStatus(open, text, silent=false){
-      if(open){
-        channelBadge.classList.remove("closed"); channelBadge.classList.add("badge");
-        statusText.textContent = text || "відкритий";
-        localStorage.setItem("lastStatus","open");
-      } else {
-        channelBadge.classList.add("closed"); statusText.textContent = text || "закритий"; localStorage.setItem("lastStatus","closed");
-      }
-      if(!silent){
-        channelBadge.classList.add("status-flash");
-        setTimeout(()=>channelBadge.classList.remove("status-flash"), 1200);
-      }
-    }
+      try{ const d = new Date(pubDate); if(isNaN(d)) return pubDate || ""; return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}); }catch(e){ return pubDate||""; }
 
     const oblastPairs = [
       { oblast: "Вінницька", noun: "Вінниця" },
@@ -256,6 +202,10 @@
       { oblast: "м. Севастополь", noun: "Севастополь" }
     ];
 
+    function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+    function capitalizeUkr(s){ return s.replace(/\s+/g," ").replace(/(^|\s)([а-яіїєґA-ЯІЇЄҐ])/gu, (m, a, b)=> a + b.toUpperCase()); }
+    function validCityName(name){ if(!name) return false; if(name.length < 3) return false; const stop = ["область","області","областю","район","району","місто","міст","село","смт","курсом","півночі","півдні","захід","схід"]; const lower = name.toLowerCase(); for(const s of stop) if(lower.indexOf(s) !== -1) return false; return true; }
+
     function extractOblastsFromText(text){
       const found = new Set();
       if(!text) return [];
@@ -271,8 +221,6 @@
       return Array.from(found);
     }
 
-    function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
-
     function extractCitiesFromText(text){
       const cities = [];
       if(!text) return cities;
@@ -282,7 +230,7 @@
         const name = m[1].trim().replace(/\s+/g," ");
         if(validCityName(name)) cities.push(capitalizeUkr(name));
       }
-      const prep = new RegExp("\\b(?:в|у|на|біля|поблизу|околицях|околицях|районі|р-ні|район)\\s+([А-ЯІЇЄҐ][а-яіїєґ'\\-\\s]{2,60})","giu");
+      const prep = new RegExp("\\b(?:в|у|на|біля|поблизу|околицях|районі|р-ні|район)\\s+([А-ЯІЇЄҐ][а-яіїєґ'\\-\\s]{2,60})","giu");
       while((m = prep.exec(text)) !== null){
         const name = m[1].trim().replace(/[.,:;!?)]+$/,"").replace(/\s+/g," ");
         if(validCityName(name)) cities.push(capitalizeUkr(name));
@@ -296,16 +244,23 @@
       return uniq;
     }
 
-    function validCityName(name){
-      if(!name) return false;
-      if(name.length < 3) return false;
-      const stop = ["область","області","областю","район","району","місто","міст","село","смт","курсом","курсом","півночі","півдні","захід","схід"];
-      const lower = name.toLowerCase();
-      for(const s of stop) if(lower.indexOf(s) !== -1) return false;
-      return true;
+    function loadLastPosts(){ try{ const s = localStorage.getItem("lastPosts"); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+    function saveLastPosts(posts){
+      try{
+        const todayStr = getKyivDateString(Date.now());
+        const onlyToday = (posts||[]).filter(p=> p.dateKyiv === todayStr);
+        localStorage.setItem("lastPosts", JSON.stringify(onlyToday));
+        localStorage.setItem("lastFetchedAt", new Date().toISOString());
+        localStorage.setItem("consecutiveEmpty","0");
+        consecutiveEmpty = 0;
+      }catch(e){}
     }
+    function getKyivDateString(ms){ try{ const d = new Date(ms); return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d); }catch(e){ return ""; } }
 
-    function capitalizeUkr(s){ return s.replace(/\s+/g," ").replace(/(^|\s)([а-яіїєґA-ЯІЇЄҐ])/gu, (m, a, b)=> a + b.toUpperCase()); }
+    function setChannelStatus(open, text, silent=false){
+      if(open){ channelBadge.classList.remove("closed"); channelBadge.classList.add("badge"); statusText.textContent = text || "відкритий"; localStorage.setItem("lastStatus","open"); } else { channelBadge.classList.add("closed"); statusText.textContent = text || "закритий"; localStorage.setItem("lastStatus","closed"); }
+      if(!silent){ channelBadge.classList.add("status-flash"); setTimeout(()=>channelBadge.classList.remove("status-flash"), 1200); }
+    }
 
     async function analyze(channel, options={force:false}){
       try{
@@ -332,53 +287,61 @@
           const description = (it.content_html || it.description || it.content || "").replace(/<\/?[^>]+(>|$)/g,"").trim();
           const pubDate = it.date_published || it.pubDate || it.isoDate || it.pubdate || "";
           const ts = parseDateToMillis(pubDate);
-          return { id, link, title, description, pubDate, ts };
+          const dateKyiv = ts ? getKyivDateString(ts) : (pubDate ? getKyivDateString(Date.now()) : "");
+          return { id, link, title, description, pubDate, ts, dateKyiv };
         });
 
-        normalized.sort((a,b)=> (b.ts || 0) - (a.ts || 0));
+        const todayKyiv = getKyivDateString(Date.now());
+        const onlyToday = normalized.filter(p => p.dateKyiv === todayKyiv && (p.ts || 0) > 0);
+        onlyToday.sort((a,b)=> (b.ts || 0) - (a.ts || 0));
 
-        if(normalized.length > 0){
+        if(onlyToday.length > 0){
           const saved = loadLastPosts() || [];
           const savedIds = new Set((saved||[]).map(p=>p.id||p.link));
           const newPosts = [];
-          for(const p of normalized){
+          for(const p of onlyToday){
             const key = p.id || p.link || (p.title + p.pubDate);
             if(!savedIds.has(key)) newPosts.push(p);
           }
 
           if(newPosts.length>0){
-            renderAndAnimateDiff(normalized, newPosts, channel);
-            saveLastPosts(normalized);
+            renderAndAnimateDiff(onlyToday, newPosts, channel);
+            saveLastPosts(onlyToday);
           } else {
-            renderAll(normalized, channel, false);
-            saveLastPosts(normalized);
+            renderAll(onlyToday, channel, false);
+            saveLastPosts(onlyToday);
           }
 
           setChannelStatus(true, "відкритий");
-          resetLocalBackoffOnSuccess();
+          backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
         } else {
           consecutiveEmpty = (parseInt(localStorage.getItem("consecutiveEmpty")||"0",10)||0) + 1;
           localStorage.setItem("consecutiveEmpty", String(consecutiveEmpty));
           const saved = loadLastPosts() || [];
-          if(saved.length>0){
-            renderAll(saved, channel, true);
+          const filterSavedToday = (saved||[]).filter(p => p.dateKyiv === todayKyiv);
+          if(filterSavedToday.length>0){
+            renderAll(filterSavedToday, channel, true);
             setChannelStatus(false, "тимчасово недоступний", true);
-            diag.textContent = "Отримано порожню відповідь; показано останні відомі пости. Порожніх відповідей поспіль: " + consecutiveEmpty;
+            diag.textContent = "Немає постів за сьогодні; показано останні відомі пости сьогодні. Порожніх відповідей поспіль: " + consecutiveEmpty;
             if(consecutiveEmpty >= EMPTY_THRESHOLD) setChannelStatus(false, "закритий", false);
           } else {
-            renderAll([], channel, false);
+            out.innerHTML = "<div style='padding:12px; border-radius:10px; background:#fff7ed; color:#92400e'>Сьогодні постів немає.</div>";
             setChannelStatus(false, "закритий", false);
-            diag.textContent = "Канал не повернув постів і збережених постів немає.";
+            diag.textContent = "За сьогодні постів не знайдено.";
           }
-          increaseBackoff();
+          backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
+          localStorage.setItem("backoffMs", String(backoffMs));
         }
       }catch(e){
-        increaseBackoff();
+        backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
+        localStorage.setItem("backoffMs", String(backoffMs));
         setChannelStatus(false, "недоступний", true);
+        const todayKyiv = getKyivDateString(Date.now());
         const saved = loadLastPosts() || [];
-        if(saved.length>0){
-          renderAll(saved, normalizeChannelInput(channelInput.value||""), true);
-          diag.textContent = "Помилка: " + String(e) + " — показано збережені пости. Backoff: " + Math.round(backoffMs/1000) + " c";
+        const filterSavedToday = (saved||[]).filter(p => p.dateKyiv === todayKyiv);
+        if(filterSavedToday.length>0){
+          renderAll(filterSavedToday, normalizeChannelInput(channelInput.value||""), true);
+          diag.textContent = "Помилка: " + String(e) + " — показано збережені (сьогодні). Backoff: " + Math.round(backoffMs/1000) + " c";
         } else {
           out.innerHTML = '<div style="padding:12px; border-radius:10px; background:#fff0f0; color:var(--danger)">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
           diag.textContent = String(e);
@@ -399,9 +362,7 @@
         const oblasts = extractOblastsFromText(text);
         for(const o of oblasts) allOblastsFound.add(o);
         const cities = extractCitiesFromText(text);
-        for(const c of cities){
-          cityCounts[c] = (cityCounts[c]||0) + 1;
-        }
+        for(const c of cities) cityCounts[c] = (cityCounts[c]||0) + 1;
         if(oblasts.length===0){
           if(!groups["Інші"]) groups["Інші"] = [];
           groups["Інші"].push(p);
@@ -444,16 +405,13 @@
       const div = document.createElement("article");
       div.className = "post";
       div.dataset.id = p.id || p.link || (p.title + p.pubDate);
-
       const top = document.createElement("div"); top.className = "top";
       const title = document.createElement("div"); title.className = "title"; title.textContent = p.title || (p.description ? p.description.slice(0,140) : "(без заголовка)");
       const time = document.createElement("div"); time.className = "time"; time.textContent = formatKyiv(p.pubDate || p.ts || "");
       top.appendChild(title); top.appendChild(time);
       div.appendChild(top);
-
       const body = document.createElement("div"); body.className = "body"; body.textContent = p.description || "";
       div.appendChild(body);
-
       const actions = document.createElement("div"); actions.className = "actions";
       const open = document.createElement("a"); open.className = "open"; open.href = p.link || ("https://t.me/" + encodeURIComponent(channel)); open.target="_blank"; open.rel="noopener noreferrer"; open.textContent = "Відкрити в Telegram";
       actions.appendChild(open);
@@ -463,7 +421,7 @@
 
     function renderRaw(posts){
       rawBlock.style.display = "block";
-      rawBlock.innerHTML = "<strong>Сирі останні пости</strong>";
+      rawBlock.innerHTML = "<strong>Сирі останні пости (сьогодні)</strong>";
       if(posts.length===0){ rawBlock.innerHTML += "<div style='margin-top:8px;'>Немає постів.</div>"; return; }
       for(const p of posts){
         const wrap = document.createElement("div");
@@ -494,24 +452,12 @@
             const pill = document.createElement("span"); pill.className="pill-new"; pill.textContent="НОВЕ"; pill.style.marginLeft="8px";
             const titleEl = n.querySelector(".title");
             if(titleEl && !titleEl.querySelector(".pill-new")) titleEl.appendChild(pill);
-            setTimeout(()=>{
-              n.classList.remove("new");
-              const p = titleEl.querySelector(".pill-new");
-              if(p) p.remove();
-            }, 7000);
-            if(!firstSeen){ firstSeen = n; }
+            setTimeout(()=>{ n.classList.remove("new"); const p = titleEl.querySelector(".pill-new"); if(p) p.remove(); }, 7000);
+            if(!firstSeen) firstSeen = n;
           }
         }
         if(firstSeen) firstSeen.scrollIntoView({behavior:"smooth", block:"start"});
       }, 120);
-    }
-
-    function increaseBackoff(){
-      backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
-      localStorage.setItem("backoffMs", String(backoffMs));
-    }
-    function resetLocalBackoffOnSuccess(){
-      backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
     }
 
     loadBtn.addEventListener("click", ()=> {
@@ -543,6 +489,15 @@
     }
 
     document.addEventListener("DOMContentLoaded", ()=>{
+      const lastFetched = localStorage.getItem("lastFetchedAt");
+      if(lastFetched){
+        const savedDay = getKyivDateString(new Date(lastFetched).getTime());
+        const today = getKyivDateString(Date.now());
+        if(savedDay !== today){
+          localStorage.removeItem("lastPosts");
+          localStorage.removeItem("lastFetchedAt");
+        }
+      }
       const saved = localStorage.getItem("lastChannel");
       if(saved) channelInput.value = saved;
       const initial = normalizeChannelInput(channelInput.value||"kpszsu");
