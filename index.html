@@ -80,7 +80,7 @@
           <input id="channelInput" type="text" style="width:360px" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або 123456789" />
           <button id="loadBtn" class="btn">Завантажити</button>
           <button id="forceBtn" class="btn secondary">Примусово оновити</button>
-          <button id="resetBackoffBtn" class="btn ghost">Скинути backoff</button>
+          <button id="resetBackoffBtn" class="btn ghost" title="Скинути backoff (працює завжди)">Скинути backoff</button>
         </div>
 
         <div class="right">
@@ -225,6 +225,7 @@
       consecutiveEmpty = 0;
       localStorage.removeItem("backoffMs");
       localStorage.removeItem("consecutiveEmpty");
+      diag.textContent = "Backoff скинуто.";
     }
 
     function getStaleAge(){
@@ -338,7 +339,7 @@
         setChannelStatus(false, "перевіряємо...", true);
         loadBtn.setAttribute("disabled","true");
         forceBtn.setAttribute("disabled","true");
-        resetBackoffBtn.setAttribute("disabled","true");
+        // resetBackoffBtn intentionally NOT disabled so user can always reset backoff
         diag.textContent = "";
 
         if(backoffMs > 0 && !options.force) {
@@ -428,7 +429,7 @@
       } finally {
         loadBtn.removeAttribute("disabled");
         forceBtn.removeAttribute("disabled");
-        resetBackoffBtn.removeAttribute("disabled");
+        // resetBackoffBtn intentionally left enabled so user can reset anytime
       }
     }
 
@@ -460,8 +461,8 @@
     });
 
     resetBackoffBtn.addEventListener("click", function(){
+      // this button should always be available; allow immediate reset
       resetBackoff();
-      diag.textContent = "Backoff скинуто вручну.";
       const channel = normalizeChannelInput(channelInput.value||"");
       if(channel) analyze(channel, {force:true}).catch(()=>{});
     });
