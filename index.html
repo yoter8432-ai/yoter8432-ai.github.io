@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Telegram — Повітряні тривоги (тільки сьогодні)</title>
+  <title>Повітряні тривоги — карта і список</title>
   <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-3g6X0k6q3r3r0gC0Eo6qK2R7d2sZqjG2Zq6nFbbLkGdYh4m8l1T6y3H4wZqj3p9V" crossorigin="anonymous"/>
   <style>
     :root{
       --accent: #2563eb;
-      --success: #059669;
       --danger: #dc2626;
       --muted: #6b7280;
       --bg: #f8fafc;
@@ -16,9 +16,8 @@
       --card-border: #e6edf6;
       --text: #0f1724;
       --muted-text: #475569;
-      --pill-bg: rgba(37,99,235,0.08);
+      --success: #059669;
       --new-bg: #fff7ed;
-      --new-border: #f59e0b;
     }
     @media (prefers-color-scheme: dark){
       :root{
@@ -27,153 +26,124 @@
         --card-border: #0b2236;
         --text: #e6eef8;
         --muted-text: #9aa8bf;
-        --pill-bg: rgba(37,99,235,0.12);
-        --new-bg: #2b1b05;
-        --new-border: #f59e0b;
       }
     }
-    body{ margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); color: var(--text); -webkit-font-smoothing:antialiased; }
-    .container{ max-width:1100px; margin:28px auto; padding:18px; }
+    body{ margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+    .container{ max-width:1100px; margin:24px auto; padding:16px; }
     header{ display:flex; gap:12px; align-items:flex-end; }
     h1{ margin:0; font-size:20px; font-weight:700; }
     .muted{ color:var(--muted-text); font-size:13px; }
-    .controls{ margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--card-border); padding:12px; border-radius:12px; box-shadow: 0 6px 20px rgba(2,6,23,0.04); }
-    .controls label{ font-size:13px; color:var(--muted-text); }
-    input[type="text"], input[type="number"], select { border-radius:8px; padding:8px 10px; border:1px solid var(--card-border); background:transparent; color:var(--text); min-height:38px; }
-    input::placeholder{ color:#9aa8bf; }
-    .btn{ display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:10px; cursor:pointer; border:0; background:var(--accent); color:white; font-weight:600; box-shadow:0 6px 18px rgba(37,99,235,0.12); }
-    .btn.secondary{ background:#374151; box-shadow:none; color:white; }
+    .controls{ margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--card-border); padding:12px; border-radius:12px; }
+    .left { display:flex; gap:8px; align-items:center; }
+    .right { margin-left:auto; display:flex; gap:8px; align-items:center; }
+    input[type="text"], select, input[type="number"]{ border-radius:8px; padding:8px 10px; border:1px solid var(--card-border); min-height:40px; background:transparent; color:var(--text); }
+    .btn { display:inline-flex; gap:8px; align-items:center; padding:10px 14px; border-radius:10px; cursor:pointer; border:0; background:var(--accent); color:white; font-weight:700; }
+    .btn.secondary{ background:#374151; }
     .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); }
-    .btn[disabled]{ opacity:.6; pointer-events:none; }
-    .badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--pill-bg); color:var(--accent); font-weight:700; font-size:13px; }
-    .status { display:flex; gap:10px; align-items:center; margin-top:12px; }
-    #diag { color:var(--danger); font-size:13px; }
-    #summary { margin-top:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    .summary-pill{ background:var(--card-bg); border:1px solid var(--card-border); padding:8px 12px; border-radius:10px; font-weight:700; color:var(--text); display:inline-flex; gap:8px; align-items:center; }
-    .region-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:12px; }
-    .region-header { display:flex; justify-content:space-between; gap:10px; align-items:center; }
-    .region-title{ font-weight:700; font-size:16px; }
-    .region-meta{ color:var(--muted-text); font-size:13px; }
-    .post{ border-radius:10px; padding:10px; margin-top:10px; border:1px solid rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:8px; background:transparent; }
-    .post .top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .post .title{ font-weight:700; font-size:15px; color:var(--text); }
-    .post .time{ color:var(--muted-text); font-size:13px; min-width:110px; text-align:right; }
-    .post .body{ color:var(--muted-text); font-size:14px; white-space:pre-wrap; }
-    .post .actions{ display:flex; gap:8px; align-items:center; margin-top:6px; }
-    .post a.open{ background:transparent; border:1px solid var(--card-border); color:var(--accent); padding:6px 10px; border-radius:8px; text-decoration:none; font-weight:600; }
-    .raw-block { margin-top:16px; border-radius:10px; background:var(--card-bg); border:1px dashed var(--card-border); padding:12px; color:var(--muted-text); font-size:13px; }
-    .post.new { background: var(--new-bg); border:2px solid var(--new-border); box-shadow: 0 8px 20px rgba(245,158,11,0.06); animation: newFlash 2.2s ease; }
-    @keyframes newFlash { 0% { transform: translateY(-6px); } 40% { transform: translateY(0); } 100% { transform: translateY(0); } }
-    .pill-new { font-size:12px; padding:4px 8px; background:var(--new-border); color:white; border-radius:999px; font-weight:700; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size:13px; color:var(--muted-text); }
+    .big { padding:12px 16px; font-size:15px; }
+    .icon { width:18px; height:18px; display:inline-block; vertical-align:middle; }
+    .status { display:flex; gap:12px; align-items:center; margin-top:12px; }
+    .badge{ padding:6px 10px; border-radius:999px; background:rgba(37,99,235,0.08); color:var(--accent); font-weight:700; }
+    #summary { margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .summary-pill{ background:var(--card-bg); border:1px solid var(--card-border); padding:8px 12px; border-radius:10px; font-weight:700; color:var(--text); }
+    #out { margin-top:12px; }
+    .region-card{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:10px; padding:12px; margin-top:10px; }
+    .post{ padding:10px; border-radius:8px; margin-top:8px; background:linear-gradient(180deg, transparent, transparent); border:1px solid rgba(0,0,0,0.03); }
+    .post .top{ display:flex; justify-content:space-between; align-items:center; }
+    .post .title{ font-weight:700; }
+    .post .time{ color:var(--muted-text); font-size:13px; }
+    .raw-block{ margin-top:12px; padding:10px; border:1px dashed var(--card-border); border-radius:8px; color:var(--muted-text); }
+    .map-modal{ position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:stretch; justify-content:center; z-index:9999; }
+    .map-panel{ width:92%; max-width:1100px; margin:auto; background:var(--card-bg); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; height:82vh; box-shadow:0 10px 40px rgba(2,6,23,0.4); }
+    .map-header{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--card-border); }
+    .map-body{ flex:1; position:relative; }
+    #map{ width:100%; height:100%; }
+    .map-legend{ position:absolute; right:12px; top:12px; background:rgba(255,255,255,0.95); padding:8px; border-radius:8px; border:1px solid var(--card-border); font-size:13px; color:var(--text); z-index:400; }
+    .legend-row{ display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+    .swatch{ width:20px; height:14px; border-radius:3px; display:inline-block; }
+    .map-footer{ padding:8px 12px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; gap:10px; }
     .small{ font-size:13px; color:var(--muted-text); }
-    @media (max-width:800px){ .controls{ flex-direction:column; align-items:stretch; } input[type="text"]{ width:100%; } }
+    .hidden{ display:none; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
       <div>
-        <h1>Telegram — Повітряні тривоги (тільки сьогодні)</h1>
-        <div class="muted">Дані через RSSHub / Cloudflare Worker. Показувати лише пости сьогоднішнього дня (Kyiv time). Нові пости зверху.</div>
+        <h1>Повітряні тривоги — канал через RSSHub</h1>
+        <div class="muted">Показує лише пости сьогодні, сортування: новіші зверху. Мапа: відмітити області з тривогами.</div>
       </div>
       <div style="margin-left:auto; text-align:right;">
-        <div class="mono">Оновлено: <span id="updated">—</span></div>
-        <div class="small">Worker: <span id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</span></div>
+        <div class="small">Worker: <strong id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</strong></div>
       </div>
     </header>
 
-    <div class="controls" role="region" aria-label="Налаштування">
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <label class="small" for="channelInput">Канал</label>
+    <section class="controls">
+      <div class="left">
         <input id="channelInput" type="text" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або ID" />
-        <button id="loadBtn" class="btn">Завантажити</button>
-        <button id="forceBtn" class="btn secondary">Примусово оновити</button>
-        <button id="resetBackoffBtn" class="btn ghost" title="Скидає backoff і негайно перезапитує">Скинути backoff</button>
+        <button id="loadBtn" class="btn big"><svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Завантажити</button>
+        <button id="forceBtn" class="btn secondary big"><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v2m0 10v2M5 12H3m18 0h-2M6.2 6.2L4.8 4.8m14.4 14.4l-1.4-1.4M6.2 17.8l-1.4 1.4m14.4-14.4l-1.4 1.4" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Примусово оновити</button>
+        <button id="resetBackoffBtn" class="btn ghost big">Скинути backoff</button>
+        <button id="openMapBtn" class="btn big" title="Показати карту України з областями тривог"><svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1118 0z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Карта України, тривога</button>
       </div>
 
-      <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-        <label class="small" for="countSelect">Постів</label>
+      <div class="right">
+        <label class="small">Постів</label>
         <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select>
-
-        <label class="small" for="intervalInput">Інтервал (c)</label>
+        <label class="small">Інтервал (c)</label>
         <input id="intervalInput" type="number" min="10" value="30" style="width:80px" />
-
-        <label style="display:flex; gap:6px; align-items:center;"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Показувати сирі пости</span></label>
+        <label style="display:flex;align-items:center;gap:6px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
       </div>
-    </div>
+    </section>
 
     <div class="status">
-      <div id="channelBadge" class="badge">Статус: <span id="statusText" style="margin-left:6px">—</span></div>
-      <div id="diag" style="margin-left:6px"></div>
+      <div class="badge">Статус: <span id="statusText" style="margin-left:8px">—</span></div>
+      <div id="diag" class="small" style="margin-left:8px"></div>
     </div>
 
     <div id="summary">
-      <div id="oblastsPill" class="summary-pill">Областей згадано: <strong id="oblastsCount">0</strong></div>
-      <div id="citiesPill" class="summary-pill">Міст згадано: <strong id="citiesCount">0</strong></div>
-      <div id="citiesList" style="margin-left:6px; color:var(--muted-text); font-size:13px"></div>
+      <div class="summary-pill">Областей згадано: <strong id="oblastsCount">0</strong></div>
+      <div class="summary-pill">Міст згадано: <strong id="citiesCount">0</strong></div>
+      <div id="citiesList" class="small"></div>
     </div>
 
     <div id="out"></div>
-
     <div id="raw" class="raw-block" style="display:none;"></div>
   </div>
+
+  <div id="mapModal" class="map-modal hidden" role="dialog" aria-modal="true" aria-label="Карта України тривог">
+    <div class="map-panel" role="document">
+      <div class="map-header">
+        <button id="closeMapBtn" class="btn ghost">Закрити карту</button>
+        <div style="margin-left:12px; font-weight:700">Карта України — області з тривогами</div>
+        <div style="margin-left:auto" id="mapSubtitle" class="small"></div>
+      </div>
+      <div class="map-body">
+        <div id="map"></div>
+        <div id="legend" class="map-legend">
+          <div style="font-weight:700; margin-bottom:6px">Легенда</div>
+          <div class="legend-row"><span class="swatch" style="background:#7a0177"></span> дуже багато згадок</div>
+          <div class="legend-row"><span class="swatch" style="background:#c51b8a"></span> багато</div>
+          <div class="legend-row"><span class="swatch" style="background:#f768a1"></span> помірно</div>
+          <div class="legend-row"><span class="swatch" style="background:#fa9fb5"></span> кілька згадок</div>
+          <div class="legend-row"><span class="swatch" style="background:#fde0ef"></span> 1 згадка</div>
+        </div>
+      </div>
+      <div class="map-footer">
+        <div class="small">Дані: публічні пости каналу (сьогодні)</div>
+        <div>
+          <button id="retryGeoBtn" class="btn ghost">Повторити завантаження гео</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-TiC2q8b8oV4wMZtQeI9s2q3Vf7lXK6Qx3gM2mQ6v9Yf8h5G2r4H1s3Z0q7l2b6Vg" crossorigin="anonymous"></script>
 
   <script>
     const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
     const KYIV_TZ = "Europe/Kyiv";
-    const EMPTY_THRESHOLD = 2;
-    const MAX_BACKOFF_MS = 300000;
-
-    let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
-    let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0;
-    let POLL_TIMER = null;
-
-    const channelInput = document.getElementById("channelInput");
-    const loadBtn = document.getElementById("loadBtn");
-    const forceBtn = document.getElementById("forceBtn");
-    const resetBackoffBtn = document.getElementById("resetBackoffBtn");
-    const countSelect = document.getElementById("countSelect");
-    const intervalInput = document.getElementById("intervalInput");
-    const showRawAlways = document.getElementById("showRawAlways");
-    const out = document.getElementById("out");
-    const rawBlock = document.getElementById("raw");
-    const statusText = document.getElementById("statusText");
-    const channelBadge = document.getElementById("channelBadge");
-    const diag = document.getElementById("diag");
-    const oblastsCountEl = document.getElementById("oblastsCount");
-    const citiesCountEl = document.getElementById("citiesCount");
-    const citiesListEl = document.getElementById("citiesList");
-    document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
-
-    function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch(e){ return new Date().toString(); } }
-    function normalizeChannelInput(raw){ if(!raw) return ""; raw=raw.trim(); if(raw.startsWith("@")) raw=raw.slice(1); try{ const u=new URL(raw); const p=u.pathname.replace(/^\/+|\/+$/g,""); if(p.length>0) return p.split("/")[0]; return raw; }catch(e){ return raw; } }
-    function buildWorkerUrl(channel, extra){ const e = extra ? "&"+extra.replace(/^[&?]+/,"") : ""; return WORKER_BASE + encodeURIComponent(channel) + e; }
-    async function fetchFromWorker(channel, extra){ const url = buildWorkerUrl(channel, extra); const r = await fetch(url, { cache: "no-store" }); if(!r.ok){ const txt = await r.text().catch(()=> ""); throw new Error("HTTP "+r.status + " " + (txt.slice? txt.slice(0,400) : String(txt))); } return r.json(); }
-
-    function getKyivDateString(ms){
-      try{
-        const d = new Date(ms);
-        return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d);
-      }catch(e){ return ""; }
-    }
-    function parseDateToMillis(pubDate){
-      if(!pubDate) return 0;
-      const d = Date.parse(pubDate);
-      if(!isNaN(d)) return d;
-      const timeOnly = pubDate.trim().match(/^\d{1,2}:\d{2}$/);
-      if(timeOnly){
-        const now = new Date();
-        const [hh,mm] = pubDate.split(":").map(Number);
-        const dd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
-        return dd.getTime();
-      }
-      return 0;
-    }
-    function formatKyiv(pubDate){
-      try{ const d = new Date(pubDate); if(isNaN(d)) return pubDate || ""; return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}); }catch(e){ return pubDate||""; }
-
-    const oblastPairs = [
+    const OBLAST_PAIRS = [
       { oblast: "Вінницька", noun: "Вінниця" },
       { oblast: "Волинська", noun: "Волинь" },
       { oblast: "Дніпропетровська", noun: "Дніпро" },
@@ -202,6 +172,48 @@
       { oblast: "м. Севастополь", noun: "Севастополь" }
     ];
 
+    const mapGeoUrl = "https://raw.githubusercontent.com/leakyMirror/map-of-ukraine/master/GeoJSON/ukraine.geo.json";
+
+    const channelInput = document.getElementById("channelInput");
+    const loadBtn = document.getElementById("loadBtn");
+    const forceBtn = document.getElementById("forceBtn");
+    const resetBackoffBtn = document.getElementById("resetBackoffBtn");
+    const openMapBtn = document.getElementById("openMapBtn");
+    const closeMapBtn = document.getElementById("closeMapBtn");
+    const retryGeoBtn = document.getElementById("retryGeoBtn");
+    const countSelect = document.getElementById("countSelect");
+    const intervalInput = document.getElementById("intervalInput");
+    const showRawAlways = document.getElementById("showRawAlways");
+    const out = document.getElementById("out");
+    const rawBlock = document.getElementById("raw");
+    const statusText = document.getElementById("statusText");
+    const diag = document.getElementById("diag");
+    const oblastsCountEl = document.getElementById("oblastsCount");
+    const citiesCountEl = document.getElementById("citiesCount");
+    const citiesListEl = document.getElementById("citiesList");
+    const mapModal = document.getElementById("mapModal");
+    const legend = document.getElementById("legend");
+    const mapSubtitle = document.getElementById("mapSubtitle");
+    document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
+
+    let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
+    let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0;
+    let POLL_TIMER = null;
+    let lastSavedPosts = [];
+    let lastOblastCounts = {};
+    let geoJsonData = null;
+    let map = null;
+    let geoLayer = null;
+
+    function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch(e){ return new Date().toString(); } }
+    function buildWorkerUrl(channel, extra){ const e = extra ? "&"+extra.replace(/^[&?]+/,"") : ""; return WORKER_BASE + encodeURIComponent(channel) + e; }
+    async function fetchFromWorker(channel, extra){ const url = buildWorkerUrl(channel, extra); const r = await fetch(url, { cache: "no-store" }); if(!r.ok){ const txt = await r.text().catch(()=> ""); throw new Error("HTTP "+r.status + " " + (txt.slice? txt.slice(0,400) : String(txt))); } return r.json(); }
+
+    function normalizeChannelInput(raw){ if(!raw) return ""; raw = raw.trim(); if(raw.startsWith("@")) raw = raw.slice(1); try{ const u = new URL(raw); const p = u.pathname.replace(/^\/+|\/+$/g,""); if(p.length>0) return p.split("/")[0]; return raw; }catch(e){ return raw; } }
+    function parseDateToMillis(pubDate){ if(!pubDate) return 0; const d = Date.parse(pubDate); if(!isNaN(d)) return d; const timeOnly = String(pubDate).trim().match(/^\d{1,2}:\d{2}$/); if(timeOnly){ const now = new Date(); const [hh,mm] = String(pubDate).split(":").map(Number); const dd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm); return dd.getTime(); } return 0; }
+    function getKyivDateString(ms){ try{ const d = new Date(ms); return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d); }catch(e){ return ""; } }
+    function formatKyiv(pubDate){ try{ const d = new Date(pubDate); if(isNaN(d)) return pubDate || ""; return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}); }catch(e){ return pubDate||""; } }
+
     function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
     function capitalizeUkr(s){ return s.replace(/\s+/g," ").replace(/(^|\s)([а-яіїєґA-ЯІЇЄҐ])/gu, (m, a, b)=> a + b.toUpperCase()); }
     function validCityName(name){ if(!name) return false; if(name.length < 3) return false; const stop = ["область","області","областю","район","району","місто","міст","село","смт","курсом","півночі","півдні","захід","схід"]; const lower = name.toLowerCase(); for(const s of stop) if(lower.indexOf(s) !== -1) return false; return true; }
@@ -209,7 +221,7 @@
     function extractOblastsFromText(text){
       const found = new Set();
       if(!text) return [];
-      for(const p of oblastPairs){
+      for(const p of OBLAST_PAIRS){
         const parts = [];
         parts.push(p.oblast);
         parts.push(p.noun);
@@ -253,13 +265,8 @@
         localStorage.setItem("lastFetchedAt", new Date().toISOString());
         localStorage.setItem("consecutiveEmpty","0");
         consecutiveEmpty = 0;
+        lastSavedPosts = onlyToday;
       }catch(e){}
-    }
-    function getKyivDateString(ms){ try{ const d = new Date(ms); return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d); }catch(e){ return ""; } }
-
-    function setChannelStatus(open, text, silent=false){
-      if(open){ channelBadge.classList.remove("closed"); channelBadge.classList.add("badge"); statusText.textContent = text || "відкритий"; localStorage.setItem("lastStatus","open"); } else { channelBadge.classList.add("closed"); statusText.textContent = text || "закритий"; localStorage.setItem("lastStatus","closed"); }
-      if(!silent){ channelBadge.classList.add("status-flash"); setTimeout(()=>channelBadge.classList.remove("status-flash"), 1200); }
     }
 
     async function analyze(channel, options={force:false}){
@@ -323,17 +330,17 @@
             renderAll(filterSavedToday, channel, true);
             setChannelStatus(false, "тимчасово недоступний", true);
             diag.textContent = "Немає постів за сьогодні; показано останні відомі пости сьогодні. Порожніх відповідей поспіль: " + consecutiveEmpty;
-            if(consecutiveEmpty >= EMPTY_THRESHOLD) setChannelStatus(false, "закритий", false);
+            if(consecutiveEmpty >= 2) setChannelStatus(false, "закритий", false);
           } else {
             out.innerHTML = "<div style='padding:12px; border-radius:10px; background:#fff7ed; color:#92400e'>Сьогодні постів немає.</div>";
             setChannelStatus(false, "закритий", false);
             diag.textContent = "За сьогодні постів не знайдено.";
           }
-          backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
+          backoffMs = backoffMs ? Math.min(backoffMs*2, 300000) : 5000;
           localStorage.setItem("backoffMs", String(backoffMs));
         }
       }catch(e){
-        backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
+        backoffMs = backoffMs ? Math.min(backoffMs*2, 300000) : 5000;
         localStorage.setItem("backoffMs", String(backoffMs));
         setChannelStatus(false, "недоступний", true);
         const todayKyiv = getKyivDateString(Date.now());
@@ -349,8 +356,11 @@
       } finally {
         loadBtn.removeAttribute("disabled");
         forceBtn.removeAttribute("disabled");
-        document.getElementById("updated").textContent = nowStr();
       }
+    }
+
+    function setChannelStatus(open, text){
+      if(open){ statusText.textContent = text || "відкритий"; } else { statusText.textContent = text || "закритий"; }
     }
 
     function renderAll(posts, channel, isStale){
@@ -362,7 +372,7 @@
         const oblasts = extractOblastsFromText(text);
         for(const o of oblasts) allOblastsFound.add(o);
         const cities = extractCitiesFromText(text);
-        for(const c of cities) cityCounts[c] = (cityCounts[c]||0) + 1;
+        for(const c of cities){ cityCounts[c] = (cityCounts[c]||0) + 1; }
         if(oblasts.length===0){
           if(!groups["Інші"]) groups["Інші"] = [];
           groups["Інші"].push(p);
@@ -377,8 +387,8 @@
         const card = document.createElement("section");
         card.className = "region-card";
         const header = document.createElement("div");
-        header.className = "region-header";
-        header.innerHTML = '<div class="region-title">'+oblast+'</div><div class="region-meta">згадок: <strong>'+groups[oblast].length+'</strong></div>';
+        header.style.display = "flex"; header.style.justifyContent = "space-between"; header.style.alignItems="center";
+        header.innerHTML = '<div style="font-weight:700">'+oblast+'</div><div style="color:var(--muted-text)">згадок: <strong>'+groups[oblast].length+'</strong></div>';
         card.appendChild(header);
         for(const p of groups[oblast]){
           const node = makePostNode(p, channel);
@@ -387,52 +397,39 @@
         out.appendChild(card);
       }
 
-      const oblastsCount = allOblastsFound.size;
-      oblastsCountEl.textContent = String(oblastsCount);
-
+      oblastsCountEl.textContent = String(allOblastsFound.size);
       const cityKeys = Object.keys(cityCounts).sort((a,b)=>cityCounts[b]-cityCounts[a]);
       citiesCountEl.textContent = String(cityKeys.length);
-      if(cityKeys.length>0){
-        citiesListEl.innerHTML = cityKeys.slice(0,10).map(k=>k + " ("+cityCounts[k]+")").join(", ");
-      } else {
-        citiesListEl.innerHTML = "";
-      }
-
+      citiesListEl.innerHTML = cityKeys.slice(0,10).map(k=>k + " ("+cityCounts[k]+")").join(", ");
+      lastOblastCounts = {};
+      for(const k of Array.from(allOblastsFound)){ lastOblastCounts[k] = groups[k] ? groups[k].length : 0; }
       if(showRawAlways.checked) renderRaw(posts); else rawBlock.style.display = "none";
     }
 
     function makePostNode(p, channel){
-      const div = document.createElement("article");
-      div.className = "post";
-      div.dataset.id = p.id || p.link || (p.title + p.pubDate);
-      const top = document.createElement("div"); top.className = "top";
-      const title = document.createElement("div"); title.className = "title"; title.textContent = p.title || (p.description ? p.description.slice(0,140) : "(без заголовка)");
-      const time = document.createElement("div"); time.className = "time"; time.textContent = formatKyiv(p.pubDate || p.ts || "");
+      const div = document.createElement("article"); div.className="post"; div.dataset.id = p.id || p.link || (p.title + p.pubDate);
+      const top = document.createElement("div"); top.className="top";
+      const title = document.createElement("div"); title.className="title"; title.textContent = p.title || (p.description ? p.description.slice(0,140) : "(без заголовка)");
+      const time = document.createElement("div"); time.className="time"; time.textContent = formatKyiv(p.pubDate || p.ts || "");
       top.appendChild(title); top.appendChild(time);
       div.appendChild(top);
-      const body = document.createElement("div"); body.className = "body"; body.textContent = p.description || "";
+      const body = document.createElement("div"); body.textContent = p.description || ""; body.style.color = "var(--muted-text)";
       div.appendChild(body);
-      const actions = document.createElement("div"); actions.className = "actions";
-      const open = document.createElement("a"); open.className = "open"; open.href = p.link || ("https://t.me/" + encodeURIComponent(channel)); open.target="_blank"; open.rel="noopener noreferrer"; open.textContent = "Відкрити в Telegram";
-      actions.appendChild(open);
-      div.appendChild(actions);
+      const actions = document.createElement("div"); actions.style.marginTop="8px";
+      const open = document.createElement("a"); open.href = p.link || ("https://t.me/" + encodeURIComponent(channel)); open.target="_blank"; open.rel="noopener noreferrer"; open.textContent = "Відкрити в Telegram"; open.className="btn ghost";
+      actions.appendChild(open); div.appendChild(actions);
       return div;
     }
 
     function renderRaw(posts){
-      rawBlock.style.display = "block";
-      rawBlock.innerHTML = "<strong>Сирі останні пости (сьогодні)</strong>";
+      rawBlock.style.display = "block"; rawBlock.innerHTML = "<strong>Сирі останні пости (сьогодні)</strong>";
       if(posts.length===0){ rawBlock.innerHTML += "<div style='margin-top:8px;'>Немає постів.</div>"; return; }
       for(const p of posts){
-        const wrap = document.createElement("div");
-        wrap.style.marginTop = "8px";
-        wrap.style.padding = "8px";
-        wrap.style.borderRadius = "8px";
-        wrap.style.background = "rgba(0,0,0,0.02)";
+        const wrap = document.createElement("div"); wrap.style.marginTop="8px"; wrap.style.padding="8px"; wrap.style.borderRadius="8px"; wrap.style.background="rgba(0,0,0,0.02)";
         const title = document.createElement("div"); title.style.fontWeight="700"; title.textContent = p.title || "";
         const when = document.createElement("div"); when.style.fontSize="13px"; when.style.color="var(--muted-text)"; when.textContent = formatKyiv(p.pubDate||p.ts||"");
         const pre = document.createElement("pre"); pre.style.whiteSpace="pre-wrap"; pre.textContent = p.description || "";
-        const link = document.createElement("a"); link.href = p.link || ("https://t.me/" + encodeURIComponent(normalizeChannelInput(channelInput.value||""))); link.target="_blank"; link.rel="noopener noreferrer"; link.textContent = "Відкрити в Telegram"; link.style.display="inline-block"; link.style.marginTop="8px"; link.className="open";
+        const link = document.createElement("a"); link.href = p.link || ("https://t.me/" + encodeURIComponent(normalizeChannelInput(channelInput.value||""))); link.target="_blank"; link.rel="noopener noreferrer"; link.textContent = "Відкрити в Telegram"; link.className="btn ghost"; link.style.display="inline-block"; link.style.marginTop="8px";
         wrap.appendChild(title); wrap.appendChild(when); wrap.appendChild(pre); wrap.appendChild(link);
         rawBlock.appendChild(wrap);
       }
@@ -448,16 +445,23 @@
         for(const n of nodes){
           const nid = n.dataset.id;
           if(ids.has(nid)){
-            n.classList.add("new");
-            const pill = document.createElement("span"); pill.className="pill-new"; pill.textContent="НОВЕ"; pill.style.marginLeft="8px";
-            const titleEl = n.querySelector(".title");
-            if(titleEl && !titleEl.querySelector(".pill-new")) titleEl.appendChild(pill);
-            setTimeout(()=>{ n.classList.remove("new"); const p = titleEl.querySelector(".pill-new"); if(p) p.remove(); }, 7000);
+            n.style.transition = "box-shadow .3s, transform .3s";
+            n.style.boxShadow = "0 10px 30px rgba(37,99,235,0.12)";
+            n.style.transform = "translateY(-6px)";
+            setTimeout(()=>{ n.style.boxShadow=""; n.style.transform=""; }, 1600);
             if(!firstSeen) firstSeen = n;
           }
         }
         if(firstSeen) firstSeen.scrollIntoView({behavior:"smooth", block:"start"});
       }, 120);
+    }
+
+    function startPolling(channel){
+      if(POLL_TIMER) clearInterval(POLL_TIMER);
+      const sec = Math.max(10, parseInt(intervalInput.value,10) || 30);
+      const effective = Math.max(sec*1000, backoffMs || 0);
+      POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), effective);
+      analyze(channel).catch(()=>{});
     }
 
     loadBtn.addEventListener("click", ()=> {
@@ -480,14 +484,102 @@
       if(raw) analyze(normalizeChannelInput(raw), {force:true});
     });
 
-    function startPolling(channel){
-      if(POLL_TIMER) clearInterval(POLL_TIMER);
-      const sec = Math.max(10, parseInt(intervalInput.value,10) || 30);
-      const effective = Math.max(sec*1000, backoffMs || 0);
-      POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), effective);
-      analyze(channel).catch(()=>{});
+    openMapBtn.addEventListener("click", async ()=> {
+      mapModal.classList.remove("hidden");
+      if(!map) initMap();
+      if(!geoJsonData) await loadGeoJson();
+      paintOblastsOnMap();
+    });
+
+    closeMapBtn.addEventListener("click", ()=> { mapModal.classList.add("hidden"); });
+
+    retryGeoBtn.addEventListener("click", async ()=> {
+      diag.textContent = "Завантаження гео..."; await loadGeoJson(); paintOblastsOnMap();
+    });
+
+    async function loadGeoJson(){
+      try{
+        const r = await fetch(mapGeoUrl);
+        if(!r.ok) throw new Error("Не вдалося завантажити GeoJSON: HTTP " + r.status);
+        geoJsonData = await r.json();
+        diag.textContent = "";
+      }catch(e){
+        diag.textContent = "Помилка завантаження геоданих: " + String(e);
+      }
     }
 
+    function initMap(){
+      map = L.map("map", { zoomControl:true }).setView([49, 31], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap' }).addTo(map);
+      geoLayer = L.geoJSON(null, { style: defaultStyle, onEachFeature: onEachFeature }).addTo(map);
+    }
+
+    function defaultStyle(feature){
+      return { color: "#444", weight: 1, fillColor: "#f2f2f2", fillOpacity: 0.6 };
+    }
+
+    function highlightStyle(count){
+      if(count >= 10) return { fillColor: "#7a0177", fillOpacity: 0.85, color:"#4b0056", weight:1.6 };
+      if(count >= 6) return { fillColor: "#c51b8a", fillOpacity: 0.8, color:"#7a0256", weight:1.4 };
+      if(count >= 3) return { fillColor: "#f768a1", fillOpacity: 0.75, color:"#a01a5f", weight:1.2 };
+      if(count >= 2) return { fillColor: "#fa9fb5", fillOpacity: 0.72, color:"#b5476f", weight:1.0 };
+      return { fillColor: "#fde0ef", fillOpacity: 0.7, color:"#d07c9b", weight:0.9 };
+    }
+
+    function onEachFeature(feature, layer){
+      const nameCandidates = getFeatureNames(feature);
+      layer.on({
+        mouseover: function(e){ e.target.setStyle({ weight:2, fillOpacity:0.95 }); },
+        mouseout: function(e){ geoLayer.resetStyle(e.target); },
+        click: function(e){
+          const props = feature.properties || {};
+          const names = nameCandidates.join(" / ");
+          const count = findOblastMentionCountByFeature(feature) || 0;
+          layer.bindPopup("<strong>"+ names +"</strong><div class='small'>Згадок: "+count+"</div>").openPopup();
+        }
+      });
+    }
+
+    function getFeatureNames(feature){
+      const p = feature.properties || {};
+      const out = [];
+      if(p.name) out.push(p.name);
+      if(p.NAME_1) out.push(p.NAME_1);
+      if(p.name_uk) out.push(p.name_uk);
+      if(p.admin) out.push(p.admin);
+      return out.filter(Boolean);
+    }
+
+    function findOblastMentionCountByFeature(feature){
+      const names = getFeatureNames(feature).map(s => String(s).toLowerCase());
+      for(const pair of OBLAST_PAIRS){
+        const candidates = [pair.oblast, pair.noun, pair.noun.replace(/(ь|а|я|й|о|и|і)$/iu,"")].map(s=>String(s||"").toLowerCase());
+        for(const c of candidates){
+          for(const fn of names){
+            if(fn.indexOf(c) !== -1) return lastOblastCounts[pair.oblast] || 0;
+          }
+        }
+      }
+      return 0;
+    }
+
+    function paintOblastsOnMap(){
+      if(!map) initMap();
+      if(!geoJsonData){
+        diag.textContent = "Геодані не завантажені.";
+        return;
+      }
+      geoLayer.clearLayers();
+      geoLayer = L.geoJSON(geoJsonData, { style: function(feature){
+        const cnt = findOblastMentionCountByFeature(feature);
+        if(cnt > 0) return highlightStyle(cnt);
+        return defaultStyle(feature);
+      }, onEachFeature: onEachFeature }).addTo(map);
+      map.fitBounds(geoLayer.getBounds(), { padding:[20,20] });
+      mapSubtitle.textContent = "Оновлено: " + nowStr();
+    }
+
+    // початкова ініціалізація: підвантажити збережені сьогодні пости
     document.addEventListener("DOMContentLoaded", ()=>{
       const lastFetched = localStorage.getItem("lastFetchedAt");
       if(lastFetched){
@@ -502,6 +594,10 @@
       if(saved) channelInput.value = saved;
       const initial = normalizeChannelInput(channelInput.value||"kpszsu");
       if(initial) startPolling(initial);
+    });
+
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape") mapModal.classList.add("hidden");
     });
   </script>
 </body>
