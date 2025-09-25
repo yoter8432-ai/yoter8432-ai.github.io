@@ -67,6 +67,145 @@
   </main>
 
   <footer>
+    Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank" rel="noopener">siren.pp.ua</a>
+  </footer>
+
+  <script>
+    // ВАЖЛИВО: у файлі не повинно бути НІЧОГО ПІСЛЯ закривального </html>
+    // Якщо бачиш сирий код на сторінці — значить після </html> випадково щось дописали.
+
+    const BASE = "https://siren.pp.ua/api";
+    const stateUrl = () => `${BASE}/states?short`;
+    const liveUrl  = () => `${BASE}/states/live`;
+
+    const statusEl = document.getElementById('status');
+    const updEl = document.getElementById('updated');
+    const activeCountEl = document.getElementById('activeCount');
+    const gridEl = document.getElementById('grid');
+    const feedEl = document.getElementById('feed');
+    const soundBtn = document.getElementById('soundBtn');
+
+    let lastActiveIds = new Set();
+    let soundOn = false;
+    let audioCtx;
+
+    soundBtn.addEventListener('click', () => {
+      soundOn = !soundOn;
+      soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+      soundBtn.textContent = soundOn ? '🔔 Звук' : '🔕 Звук';
+      if (soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    });
+
+    function beep() {
+      if (!soundOn || !audioCtx) return;
+      try{
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine'; o.frequency.value = 880;
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+        o.start(); o.stop(audioCtx.currentTime + 0.6);
+      }catch(e){/* ignore */}
+    }
+
+    const fmtTime = (iso) => {
+      try { return new Date(iso).toLocaleString('uk-UA'); } catch { return '—'; }
+    };
+
+    function renderStates(data){
+      if (!data || !Array.isArray(data.states)) return;
+      const states = data.states.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+      const active = states.filter(s=> !!s.alert);
+
+      const currentActiveIds = new Set(active.map(s=> s.id));
+      let newOn = false;
+      currentActiveIds.forEach(id => { if (!lastActiveIds.has(id)) newOn = true; });
+      if (newOn) beep();
+      lastActiveIds = currentActiveIds;
+
+      activeCountEl.textContent = active.length;
+      updEl.textContent = 'Оновлено: ' + new Date().toLocaleTimeString('uk-UA');
+
+      gridEl.innerHTML = states.map(s=>`
+        <div class="oblast ${s.alert ? 'on' : ''}">
+          <div>
+            <div><strong>${s.name ?? ('Область #' + s.id)}</strong></div>
+            <div class="muted" style="font-size:12px">${s.alert ? 'ТРИВОГА' : 'спокійно'}${s.changed ? ' · ' + fmtTime(s.changed) : ''}</div>
+          </div>
+          <span class="badge ${s.alert ? 'on' : ''}">${s.alert ? 'A' : 'N'}</span>
+        </div>
+      `).join('');
+
+      feedEl.innerHTML = active.length
+        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong> — повітряна тривога</div><div class="muted">${fmtTime(s.changed)}</div></div>`).join('')
+        : '<div class="muted">Наразі тривог немає 🎉</div>';
+    }
+
+    async function refresh(){
+      try{
+        const r = await fetch(stateUrl(), {cache:'no-store', mode:'cors'});
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        renderStates(data);
+        statusEl.textContent = 'Статус: онлайн';
+      }catch(e){
+        statusEl.textContent = 'Статус: помилка';
+        console.error('fetch states error:', e);
+      }
+    }
+
+    function startSSE(){
+      try{
+        const es = new EventSource(liveUrl());
+        es.onopen = () => { statusEl.textContent = 'Статус: live підключено'; };
+        es.onerror = () => { statusEl.textContent = 'Статус: live недоступне, резервний режим'; };
+        es.onmessage = () => refresh();
+      }catch(e){
+        statusEl.textContent = 'Статус: live недоступне';
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 10000);
+    startSSE();
+  </script>
+</body>
+</html>
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">Мапа тривог — live</div>
+    <div class="chip">Джерело: siren.pp.ua</div>
+    <div class="chip" id="status">Статус: ініціалізація…</div>
+    <div class="toolbar">
+      <button id="soundBtn" aria-pressed="false">🔕 Звук</button>
+      <span class="pill" id="updated">—</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row">
+        <div>
+          <div class="muted">Активні області (повітряна тривога)</div>
+          <div class="count" id="activeCount">—</div>
+        </div>
+        <span class="pill">Оновлення: live (SSE) + резерв 10 с</span>
+      </div>
+    </section>
+
+    <section class="cards" id="grid"></section>
+
+    <section class="card">
+      <div class="muted">Останні сповіщення</div>
+      <div id="feed" class="list">Завантаження…</div>
+    </section>
+  </main>
+
+  <footer>
     Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank">siren.pp.ua</a>
   </footer>
 
