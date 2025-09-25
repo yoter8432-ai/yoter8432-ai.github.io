@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги — Україна (відкриті дані)</title>
+  <title>Повітряні тривоги з офіційного Telegram</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
@@ -11,126 +11,193 @@
     .pulse-dot::after{content:"";position:absolute;inset:-6px;border-radius:9999px;border:2px solid currentColor;opacity:.6;animation:pulse 1.5s infinite}
     @keyframes pulse{0%{transform:scale(.6);opacity:.6}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
     .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+    .pill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:9999px;font-size:12px}
+    pre{white-space:pre-wrap;word-break:break-word}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
-  <div class="max-w-6xl mx-auto p-4 sm:p-6">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6">
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — Україна</h1>
-        <p class="text-sm text-gray-500">Відкриті дані без токена • рівень областей • автооновлення кожні 20 секунд</p>
+        <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — дані з офіційного Telegram</h1>
+        <p class="text-sm text-gray-500">Дані беруться з Telegram через RSSHub (без токена). Результат — евристичний пошук згадок областей і населених пунктів у тексті постів.</p>
       </div>
       <div class="text-right text-xs text-gray-500">
         Оновлено: <span id="updated" class="mono">—</span><br />
-        Часовий пояс: Europe/Kyiv
+        Джерело: офіційний Telegram через RSSHub
       </div>
     </header>
 
-    <section class="mb-4">
-      <div class="flex flex-wrap gap-2 items-center text-sm">
-        <span class="inline-flex items-center rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-          <span class="pulse-dot" style="color:#ef4444"></span>Активні тривоги
-        </span>
-        <span class="inline-flex items-center rounded-full px-3 py-1 bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-          Областей під тривогою: <span id="regionsCount" class="ml-1 font-semibold">0</span>
-        </span>
-      </div>
-      <div class="mt-2 p-3 rounded-xl bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 text-xs">
-        Перелік міст і громад наразі недоступний з відкритих безключових джерел; відображається рівень областей.
-      </div>
+    <section class="mb-4 flex gap-3 items-center">
+      <label class="text-xs text-gray-500">Telegram канал (без @):</label>
+      <input id="channelInput" class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm" value="" placeholder="наприклад: defenceua" />
+      <button id="loadBtn" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm">Завантажити</button>
+      <div class="ml-auto text-sm text-gray-500">Оновлення кожні <span id="intervalLabel">20</span> сек</div>
     </section>
 
-    <div id="list" class="grid gap-4"></div>
+    <div id="summary" class="mb-4"></div>
 
-    <footer class="mt-10 text-xs text-gray-500">
-      Джерело: https://ubilling.net.ua/aerialalerts/ (без токена). Можна змінити адресу у змінній ENDPOINT.
+    <div id="out" class="grid gap-4"></div>
+
+    <footer class="mt-8 text-xs text-gray-500">
+      Технічна примітка: RSSHub генерує JSON з Telegram-каналів без авторизації; застосовується простий парсер назв областей по списку. Якщо інстанція RSSHub блокує запити через CORS, можна вказати іншу інстанцію або запустити локальний проксі. Документація RSSHub: docs.rsshub.app. :contentReference[oaicite:3]{index=3}
     </footer>
   </div>
 
   <script>
     const KYIV_TZ="Europe/Kyiv";
     const POLL_MS=20000;
-    const ENDPOINT="https://ubilling.net.ua/aerialalerts/";
+    let POLL_TIMER=null;
 
-    const ADAPTER={
-      async load(){
-        const r=await fetch(ENDPOINT,{headers:{"Accept":"application/json"},cache:"no-store"});
-        if(!r.ok) throw new Error("HTTP "+r.status);
-        return r.json();
-      },
-      parse(json){
-        const raw=json&&json.states?json.states:{};
-        const out=[];
-        if(Array.isArray(raw)){
-          for(const s of raw){
-            out.push({
-              id:s.id??null,
-              name:s.name??s.title??"Невідома область",
-              alert:Boolean(s.alertnow??s.alert),
-              changed:s.changed??s.lastchange??s.date??null
-            });
-          }
-        }else if(typeof raw==="object"&&raw){
-          for(const [name,s] of Object.entries(raw)){
-            out.push({
-              id:s.id??null,
-              name:name,
-              alert:Boolean(s.alertnow??s.alert),
-              changed:s.changed??s.lastchange??s.date??null
-            });
-          }
-        }
-        out.sort((a,b)=>a.name.localeCompare(b.name,"uk"));
-        return out;
-      }
-    };
+    const OBLASTS=[
+      "Вінницька","Волинська","Дніпропетровська","Дніпропетровська область","Донецька","Житомирська","Закарпатська","Запорізька",
+      "Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська",
+      "Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська",
+      "м. Київ","м. Севастополь"
+    ];
 
-    function fmtTime(s){
+    function nowStr(){
       try{
-        const d=new Date(s);
-        return isNaN(d)?"—":d.toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false});
-      }catch{return "—"}
+        return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false});
+      }catch{return new Date().toString()}
     }
 
-    function render(states){
-      const active=states.filter(s=>s.alert);
-      active.sort((a,b)=>a.name.localeCompare(b.name,"uk"));
-      const container=document.getElementById("list");
-      container.innerHTML="";
-      if(active.length===0){
-        container.innerHTML='<section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"><p class="text-sm text-gray-600 dark:text-gray-400">Наразі немає активних повітряних тривог на рівні областей.</p></section>';
+    function buildRsshubUrl(channel){
+      const safe=encodeURIComponent(channel.trim());
+      return "https://rsshub.app/telegram/channel/kpszsu"+safe+"?format=json";
+    }
+
+    function findOblastsInText(text){
+      if(!text) return [];
+      const found=new Set();
+      const t= text.normalize("NFC");
+      for(const o of OBLASTS){
+        const pattern=new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
+        if(pattern.test(t)) found.add(o);
+      }
+      return Array.from(found);
+    }
+
+    function extractSettlements(text){
+      if(!text) return [];
+      const results=new Set();
+      const patterns=[
+        /м\.\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /м\s+([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /смт\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /с\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
+        /([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})\s+область/giu
+      ];
+      for(const p of patterns){
+        let m;
+        while((m=p.exec(text))!==null){
+          const name=m[1]?.trim();
+          if(name && name.length>1 && name.length<80) results.add(name);
+        }
+      }
+      return Array.from(results);
+    }
+
+    function renderResults(groups, posts){
+      const out=document.getElementById("out");
+      out.innerHTML="";
+      const summary=document.getElementById("summary");
+      const regionsCount=Object.keys(groups).length;
+      summary.innerHTML='<div class="flex gap-3 items-center"><div class="pill bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"><span class="pulse-dot" style="color:#ef4444"></span>Областей згадано: <strong class="ml-2">'+regionsCount+'</strong></div><div class="text-sm text-gray-500 ml-3">Постів проаналізовано: <strong>'+posts.length+'</strong></div></div>';
+
+      if(regionsCount===0){
+        out.innerHTML='<section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"><p class="text-sm text-gray-600 dark:text-gray-400">У текстах останніх постів не знайдено явних згадок українських областей. Нижче повні тексти постів для перевірки.</p></section>';
       }else{
-        for(const s of active){
-          const card=document.createElement("section");
-          card.className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
+        for(const oblast of Object.keys(groups).sort((a,b)=>a.localeCompare(b,"uk"))){
+          const block=document.createElement("section");
+          block.className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
           const header=document.createElement("div");
-          header.className="flex items-start justify-between gap-3";
-          header.innerHTML='<div><h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2"><span class="pulse-dot" style="color:#ef4444"></span>'+s.name+'</h2><div class="mt-1 flex flex-wrap gap-2 text-xs"><span class="inline-flex items-center rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">Повітряна тривога</span></div></div><div class="text-xs text-gray-500 text-right">початок/зміна: <span class="mono">'+fmtTime(s.changed)+'</span></div>';
-          card.appendChild(header);
-          const body=document.createElement("div");
-          body.className="mt-3";
-          body.innerHTML='<p class="text-sm text-gray-600 dark:text-gray-400">Показано регіональний рівень. Якщо з’явиться публічний фід міст/громад без ключів, його можна підключити.</p>';
-          card.appendChild(body);
-          container.appendChild(card);
+          header.className="flex items-center justify-between";
+          header.innerHTML='<h2 class="text-lg font-semibold">'+oblast+'</h2><div class="text-xs text-gray-500">знайдено згадок: <strong>'+groups[oblast].length+'</strong></div>';
+          block.appendChild(header);
+          const list=document.createElement("ul");
+          list.className="mt-3 space-y-2";
+          for(const item of groups[oblast]){
+            const li=document.createElement("li");
+            li.className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800";
+            const title=document.createElement("div");
+            title.className="text-sm font-medium";
+            title.innerHTML=(item.title?item.title.replace(/&nbsp;/g," "):"")+' <span class="text-xs text-gray-500">· '+new Date(item.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</span>';
+            const text=document.createElement("div");
+            text.className="mt-1 text-sm text-gray-700 dark:text-gray-300";
+            text.innerHTML=(item.description?item.description:"").replace(/<\/?[^>]+(>|$)/g,"");
+            const foundSettlements=extractSettlements((item.title||"")+" "+(item.description||""));
+            if(foundSettlements.length>0){
+              const sdiv=document.createElement("div");
+              sdiv.className="mt-2 text-xs text-gray-600 dark:text-gray-400";
+              sdiv.innerHTML="Виявлені населені пункти: <strong>"+foundSettlements.join(", ")+"</strong>";
+              li.appendChild(title);
+              li.appendChild(text);
+              li.appendChild(sdiv);
+            }else{
+              li.appendChild(title);
+              li.appendChild(text);
+            }
+            list.appendChild(li);
+          }
+          block.appendChild(list);
+          out.appendChild(block);
         }
       }
-      document.getElementById("regionsCount").textContent=active.length;
-      document.getElementById("updated").textContent=new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false});
-    }
 
-    async function tick(){
-      try{
-        const json=await ADAPTER.load();
-        const states=ADAPTER.parse(json);
-        render(states);
-      }catch(e){
-        document.getElementById("list").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Перевір адресу '+ENDPOINT+'.</div>';
-      }finally{
-        setTimeout(tick,POLL_MS);
+      const rawBlock=document.createElement("section");
+      rawBlock.className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 mt-4 text-xs text-gray-500";
+      rawBlock.innerHTML="<strong>Сирі останні пости (для перевірки)</strong>";
+      for(const p of posts){
+        const pdiv=document.createElement("div");
+        pdiv.className="mt-3 p-2 rounded bg-gray-50 dark:bg-gray-900";
+        pdiv.innerHTML='<div class="text-[13px] font-medium">'+(p.title||"")+'</div><pre class="mt-1 text-[13px]">'+((p.description||"").replace(/<\/?[^>]+(>|$)/g,""))+'</pre><div class="mt-1 text-[12px] text-gray-400">Дата: '+new Date(p.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</div>';
+        rawBlock.appendChild(pdiv);
       }
+      out.appendChild(rawBlock);
+      document.getElementById("updated").textContent=nowStr();
     }
 
-    tick();
+    async function loadChannel(channel){
+      const url=buildRsshubUrl(channel);
+      const r=await fetch(url,{headers:{"Accept":"application/json"},cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.json();
+    }
+
+    async function analyze(channel){
+      const data=await loadChannel(channel);
+      const items=Array.isArray(data?.items)?data.items:(Array.isArray(data)?data:[]);
+      const posts=[];
+      for(const it of items.slice(0,20)){
+        posts.push({title:it.title||"",description:it.description||it.content||"",pubDate:it.pubDate||it.isoDate||new Date().toISOString()});
+      }
+      const groups={};
+      for(const p of posts){
+        const text=(p.title||"")+" "+(p.description||"");
+        const oblasts=findOblastsInText(text);
+        if(oblasts.length===0) continue;
+        for(const o of oblasts){
+          if(!groups[o]) groups[o]=[];
+          groups[o].push(p);
+        }
+      }
+      renderResults(groups,posts);
+    }
+
+    document.getElementById("loadBtn").addEventListener("click",function(){
+      const ch=document.getElementById("channelInput").value.trim();
+      if(!ch) return alert("Вкажіть імʼя каналу (без @).");
+      if(POLL_TIMER) clearInterval(POLL_TIMER);
+      analyze(ch).catch(e=>{document.getElementById("out").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Перевірте імʼя каналу або інстанцію RSSHub.</div>';});
+      POLL_TIMER=setInterval(()=>analyze(ch).catch(()=>{}),POLL_MS);
+    });
+
+    document.getElementById("channelInput").addEventListener("keyup",function(e){
+      if(e.key==="Enter") document.getElementById("loadBtn").click();
+    });
+
+    document.getElementById("intervalLabel").textContent=(POLL_MS/1000).toString();
   </script>
 </body>
 </html>
