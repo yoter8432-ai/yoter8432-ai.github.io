@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги з kpszsu</title>
+  <title>Повітряні тривоги — канал kpszsu</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
     .pulse-dot{width:10px;height:10px;border-radius:9999px;position:relative;display:inline-block;margin-right:.5rem;background:currentColor}
     .pulse-dot::after{content:"";position:absolute;inset:-6px;border-radius:9999px;border:2px solid currentColor;opacity:.6;animation:pulse 1.5s infinite}
     @keyframes pulse{0%{transform:scale(.6);opacity:.6}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
-    .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
-    pre{white-space:pre-wrap;word-break:break-word}
+    .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"} pre{white-space:pre-wrap;word-break:break-word}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -19,17 +18,14 @@
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — канал kpszsu</h1>
-        <p class="text-sm text-gray-500">Дані беруться з Telegram через RSSHub. Worker проксі додає CORS і дозволяє працювати без Node.js.</p>
+        <p class="text-sm text-gray-500">Дані беруться з Telegram через RSSHub; ваш Cloudflare Worker виступає проксі з CORS.</p>
       </div>
-      <div class="text-right text-xs text-gray-500">
-        Оновлено: <span id="updated" class="mono">—</span><br />
-        Джерело: @kpszsu через rsshub.app
-      </div>
+      <div class="text-right text-xs text-gray-500">Оновлено: <span id="updated" class="mono">—</span></div>
     </header>
 
     <section class="mb-4 flex gap-3 items-center">
-      <label class="text-xs text-gray-500">Telegram канал (без @):</label>
-      <input id="channelInput" class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm" value="kpszsu" />
+      <label class="text-xs text-gray-500">Канал (без @):</label>
+      <input id="channelInput" class="px-3 py-2 rounded-md border bg-white text-sm" value="kpszsu" />
       <button id="loadBtn" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm">Завантажити</button>
       <div class="ml-auto text-sm text-gray-500">Оновлення кожні <span id="intervalLabel">20</span> сек</div>
     </section>
@@ -38,31 +34,25 @@
     <div id="out" class="grid gap-4"></div>
     <div id="diag" class="mt-4 text-xs text-red-600 dark:text-red-400"></div>
 
-    <footer class="mt-8 text-xs text-gray-500">
-      Інструкція: розгорніть Worker і підставте його URL в константу WORKER_BASE у скрипті нижче.
-    </footer>
+    <footer class="mt-8 text-xs text-gray-500">Якщо з'являться помилки — дивись інструкцію діагностики нижче.</footer>
   </div>
 
   <script>
-    const WORKER_BASE="https://your-worker.workers.dev/?channel=";
+    const WORKER_BASE="https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
     const KYIV_TZ="Europe/Kyiv";
     const POLL_MS=20000;
     let POLL_TIMER=null;
-
     const OBLASTS=["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
 
-    function nowStr(){
-      try{return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})}
-      catch{return new Date().toString()}
-    }
+    function nowStr(){ try{ return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}) } catch(e){ return new Date().toString() } }
 
     function findOblastsInText(text){
       if(!text) return [];
       const found=new Set();
       const t=text.normalize("NFC");
       for(const o of OBLASTS){
-        const pattern=new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
-        if(pattern.test(t)) found.add(o);
+        const re=new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
+        if(re.test(t)) found.add(o);
       }
       return Array.from(found);
     }
@@ -90,7 +80,7 @@
 
       if(regionsCount===0){
         out.innerHTML='<section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm"><p class="text-sm text-gray-600 dark:text-gray-400">У текстах останніх постів не знайдено явних згадок областей. Нижче сирі пости.</p></section>';
-      }else{
+      } else {
         for(const oblast of Object.keys(groups).sort((a,b)=>a.localeCompare(b,"uk"))){
           const block=document.createElement("section");
           block.className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
@@ -117,7 +107,7 @@
               li.appendChild(title);
               li.appendChild(text);
               li.appendChild(sdiv);
-            }else{
+            } else {
               li.appendChild(title);
               li.appendChild(text);
             }
