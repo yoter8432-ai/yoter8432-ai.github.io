@@ -3,43 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Мапа тривог — live без токена</title>
+  <title>Мапа тривог — live (скрейпінг)</title>
   <meta name="color-scheme" content="dark light" />
   <style>
-    :root{
-      --bg:#0b1220;--card:#0f182a;--line:#1c2537;--text:#e6e9ef;--muted:#99a2b4;
-      --ok:#9be49b;--bad:#ff8d8d;--chip:#2a3550;--brand:#6ea8fe
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+    :root{--bg:#0b1220;--card:#0f182a;--line:#1c2537;--text:#e6e9ef;--muted:#99a2b4;--ok:#9be49b;--bad:#ff8d8d;--chip:#2a3550;--brand:#6ea8fe}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
     header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(11,18,32,.9),rgba(11,18,32,.8));backdrop-filter:blur(6px);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .title{font-weight:800}
-    .chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--chip);border-radius:999px;padding:6px 12px;font-size:12px}
-    main{max-width:1100px;margin:0 auto;padding:18px}
-    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .muted{color:var(--muted)}
-    .pill{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--chip)}
-    .row{display:flex;justify-content:space-between;gap:12px;align-items:center}
-    .count{font-size:34px;font-weight:900}
-    .list{margin-top:8px}
-    .item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
-    .item:last-child{border-bottom:0}
+    .title{font-weight:800}.chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--chip);border-radius:999px;padding:6px 12px;font-size:12px}
+    main{max-width:1100px;margin:0 auto;padding:18px}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.muted{color:var(--muted)}.pill{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--chip)}
+    .row{display:flex;justify-content:space-between;gap:12px;align-items:center}.count{font-size:34px;font-weight:900}.list{margin-top:8px}
+    .item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}.item:last-child{border-bottom:0}
     .oblast{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px}
     .badge{font-size:12px;border:1px solid var(--chip);border-radius:999px;padding:2px 8px}
     .on{color:var(--bad);border-color:rgba(255,141,141,.35);animation:pulse 1.5s infinite}
     @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,141,141,.35)}70%{box-shadow:0 0 0 8px rgba(255,141,141,0)}100%{box-shadow:0 0 0 0 rgba(255,141,141,0)}}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-    button{background:#13223a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
-    button[aria-pressed="true"]{outline:2px solid var(--brand)}
-    a{color:var(--brand);text-decoration:none}
-    footer{color:var(--muted);text-align:center;padding:18px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}button{background:#13223a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+    button[aria-pressed="true"]{outline:2px solid var(--brand)} a{color:var(--brand);text-decoration:none} footer{color:var(--muted);text-align:center;padding:18px}
   </style>
 </head>
 <body>
   <header>
     <div class="title">Мапа тривог — live</div>
-    <div class="chip">Джерело: siren.pp.ua</div>
+    <div class="chip">Джерело: скрейпінг публічної сторінки</div>
     <div class="chip" id="status">Статус: ініціалізація…</div>
     <div class="toolbar">
       <button id="soundBtn" aria-pressed="false">🔕 Звук</button>
@@ -67,17 +53,10 @@
   </main>
 
   <footer>
-    Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank" rel="noopener">siren.pp.ua</a>
+    Демо без токенів. Перевіряйте правила використання джерела даних.
   </footer>
 
   <script>
-    // ВАЖЛИВО: у файлі не повинно бути НІЧОГО ПІСЛЯ закривального </html>
-    // Якщо бачиш сирий код на сторінці — значить після </html> випадково щось дописали.
-
-    const BASE = "https://siren.pp.ua/api";
-    const stateUrl = () => `${BASE}/states?short`;
-    const liveUrl  = () => `${BASE}/states/live`;
-
     const statusEl = document.getElementById('status');
     const updEl = document.getElementById('updated');
     const activeCountEl = document.getElementById('activeCount');
@@ -95,12 +74,70 @@
       soundBtn.textContent = soundOn ? '🔔 Звук' : '🔕 Звук';
       if (soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     });
-
-    function beep() {
+    function beep(){
       if (!soundOn || !audioCtx) return;
-      try{
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination); o.type='sine'; o.frequency.value=880;
+      g.gain.setValueAtTime(0.0001,audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6);
+      o.start(); o.stop(audioCtx.currentTime+0.6);
+    }
+    const fmtTime = iso => { try { return new Date(iso).toLocaleString('uk-UA'); } catch { return '—'; } };
+
+    function render(states){
+      const list = states.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+      const active = list.filter(s=>!!s.alert);
+      const currentActive = new Set(active.map(s=> s.id));
+      let newOn = false; currentActive.forEach(id => { if(!lastActiveIds.has(id)) newOn=true; });
+      if (newOn) beep(); lastActiveIds = currentActive;
+
+      activeCountEl.textContent = active.length;
+      updEl.textContent = "Оновлено: " + new Date().toLocaleTimeString("uk-UA");
+      gridEl.innerHTML = list.map(s=>`
+        <div class="oblast ${s.alert ? 'on':''}">
+          <div>
+            <strong>${s.name || ('Область #' + s.id)}</strong><br>
+            <span class="muted">${s.alert ? 'ТРИВОГА' : 'спокійно'} · ${fmtTime(s.changed)}</span>
+          </div>
+          <span class="badge ${s.alert?'on':''}">${s.alert?'A':'N'}</span>
+        </div>`).join("");
+      feedEl.innerHTML = active.length
+        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong> — тривога</div><div class="muted">${fmtTime(s.changed)}</div></div>`).join("")
+        : '<div class="muted">Наразі тривог немає 🎉</div>';
+    }
+
+    async function refresh(){
+      try {
+        const r = await fetch("/states", {cache:"no-store"});
+        if (!r.ok) throw new Error("HTTP "+r.status);
+        const data = await r.json();
+        if (data?.states) render(data.states);
+        statusEl.textContent = "Статус: онлайн";
+      } catch(e){
+        statusEl.textContent = "Статус: помилка";
+        console.error(e);
+      }
+    }
+
+    function startSSE(){
+      try {
+        const es = new EventSource("/live");
+        es.onopen = () => statusEl.textContent = "Статус: live підключено";
+        es.onerror = () => statusEl.textContent = "Статус: live недоступне";
+        es.onmessage = ev => {
+          const msg = JSON.parse(ev.data);
+          if (msg?.type === "states") render(msg.data.states);
+        };
+      } catch { /* noop */ }
+    }
+
+    refresh();
+    setInterval(refresh, 10000);
+    startSSE();
+  </script>
+</body>
+</html>
         o.connect(g); g.connect(audioCtx.destination);
         o.type = 'sine'; o.frequency.value = 880;
         g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
@@ -498,22 +535,6 @@
       return div;
     };
     legend.addTo(map);
-
-    // ---------- Утилиты и примечания для разработчика ----------
-    /*
-      Что нужно подготовить перед размещением на сайте:
-      1) dnipro_districts.geojson — GeoJSON с полигонами районов/громад Дніпропетровської області.
-         Поля feature.properties.name или NA_UA должны содержать человеко-понятное имя района.
-      2) ALERTS_API_URL — заменить на реальный endpoint. Если используешь alerts.in.ua, изучи
-         их API (devs.alerts.in.ua). В большинстве случаев потребуется API token.
-      3) Если API возвращает в ответе идентификаторы районов (uid), то в GeoJSON можно добавить
-         свойство properties.uid и тогда в коде делать сопоставление по uid (по-надежнее,
-         чем по имени).
-
-      Формат ожидаемый для alertsData: массив объектов {district_name, status, since}.
-      При необходимости мы можем добавить fuzzy-matching (например, приводить
-      имена к одному виду или хранить сопоставительную таблицу {geojson_name: api_name}.
-    */
 
   </script>
 </body>
