@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги з kpszsu (через RSSHub + AllOrigins)</title>
+  <title>Повітряні тривоги з kpszsu</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
@@ -19,7 +19,7 @@
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — канал kpszsu</h1>
-        <p class="text-sm text-gray-500">Через RSSHub плюс AllOrigins, щоб уникнути CORS. Евристичний пошук згадок областей і міст у постах.</p>
+        <p class="text-sm text-gray-500">Дані беруться з Telegram через RSSHub. Worker проксі додає CORS і дозволяє працювати без Node.js.</p>
       </div>
       <div class="text-right text-xs text-gray-500">
         Оновлено: <span id="updated" class="mono">—</span><br />
@@ -36,37 +36,24 @@
 
     <div id="summary" class="mb-4"></div>
     <div id="out" class="grid gap-4"></div>
-
     <div id="diag" class="mt-4 text-xs text-red-600 dark:text-red-400"></div>
 
     <footer class="mt-8 text-xs text-gray-500">
-      Якщо AllOrigins недоступний або повільний, рекомендую запустити свій невеликий проксі на сервері. Це безпечніше і стабільніше для довготривалого використання.
+      Інструкція: розгорніть Worker і підставте його URL в константу WORKER_BASE у скрипті нижче.
     </footer>
   </div>
 
   <script>
+    const WORKER_BASE="https://your-worker.workers.dev/?channel=";
     const KYIV_TZ="Europe/Kyiv";
     const POLL_MS=20000;
     let POLL_TIMER=null;
 
-    const OBLASTS=[
-      "Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька",
-      "Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська",
-      "Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська",
-      "м. Київ","м. Севастополь"
-    ];
+    const OBLASTS=["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
 
     function nowStr(){
       try{return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})}
       catch{return new Date().toString()}
-    }
-
-    function rsshubUrl(channel){
-      return "https://rsshub.app/telegram/channel/"+encodeURIComponent(channel)+"?format=json";
-    }
-
-    function allOriginsUrl(target){
-      return "https://api.allorigins.win/raw?url="+encodeURIComponent(target);
     }
 
     function findOblastsInText(text){
@@ -83,12 +70,7 @@
     function extractSettlements(text){
       if(!text) return [];
       const results=new Set();
-      const patterns=[
-        /м\.\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
-        /м\s+([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
-        /смт\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,
-        /с\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g
-      ];
+      const patterns=[/м\.\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/м\s+([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/смт\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g,/с\.?\s*([А-ЯІЇЄҐ][а-яіїєґ'\- ]{1,60})/g];
       for(const p of patterns){
         let m;
         while((m=p.exec(text))!==null){
@@ -159,19 +141,16 @@
       document.getElementById("updated").textContent=nowStr();
     }
 
-    async function loadViaAllOrigins(channel){
-      const target=rsshubUrl(channel);
-      const proxy=allOriginsUrl(target);
-      const diag=document.getElementById("diag");
-      diag.textContent="";
-      const r=await fetch(proxy,{cache:"no-store"});
+    async function fetchFromWorker(channel){
+      const url=WORKER_BASE+encodeURIComponent(channel);
+      const r=await fetch(url,{cache:"no-store"});
       if(!r.ok) throw new Error("HTTP "+r.status);
       return r.json();
     }
 
     async function analyze(channel){
       try{
-        const data=await loadViaAllOrigins(channel);
+        const data=await fetchFromWorker(channel);
         const items=Array.isArray(data?.items)?data.items:(Array.isArray(data)?data:[]);
         const posts=[];
         for(const it of items.slice(0,30)){
@@ -188,8 +167,9 @@
           }
         }
         renderResults(groups,posts);
+        document.getElementById("diag").textContent="";
       }catch(e){
-        document.getElementById("out").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Перевірте інстанцію RSSHub або мережу. Помилка: '+String(e)+'</div>';
+        document.getElementById("out").innerHTML='<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
         document.getElementById("diag").textContent=String(e);
       }
     }
