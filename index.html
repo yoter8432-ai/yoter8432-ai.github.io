@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги — карта (області + райони) </title>
+  <title>Повітряні тривоги — області та райони</title>
   <meta name="color-scheme" content="light dark" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
@@ -15,7 +15,7 @@
       --text:#0f1724;
       --muted:#6b7280;
       --muted-text:#475569;
-      --dark-legend-bg: rgba(12,12,18,0.9);
+      --legend-bg: rgba(12,12,18,0.92);
       --legend-text: #ffffff;
     }
     @media (prefers-color-scheme: dark){
@@ -27,21 +27,24 @@
         --muted-text:#9aa8bf;
       }
     }
+
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-    .container{max-width:1100px;margin:18px auto;padding:16px}
+    .container{max-width:1100px;margin:20px auto;padding:18px}
     header{display:flex;gap:12px;align-items:flex-end}
-    h1{margin:0;font-size:18px;font-weight:700}
+    h1{margin:0;font-size:20px;font-weight:700}
     .muted{color:var(--muted-text);font-size:13px}
-    .controls{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--card-border);padding:12px;border-radius:12px}
+    .controls{margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--card-border);padding:12px;border-radius:12px}
     .left{display:flex;gap:8px;align-items:center}
     .right{margin-left:auto;display:flex;gap:8px;align-items:center}
-    input[type="text"],select,input[type="number"]{border-radius:8px;padding:8px 10px;border:1px solid var(--card-border);min-height:36px;background:transparent;color:var(--text)}
-    .btn{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;cursor:pointer;border:0;background:var(--accent);color:white;font-weight:700}
+    input[type="text"],select,input[type="number"]{border-radius:8px;padding:8px 10px;border:1px solid var(--card-border);min-height:40px;background:transparent;color:var(--text)}
+    input::placeholder{color:#9aa8bf}
+    .btn{display:inline-flex;gap:8px;align-items:center;padding:10px 14px;border-radius:10px;cursor:pointer;border:0;background:var(--accent);color:white;font-weight:700}
     .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+    .btn.secondary{background:#374151}
     .small{font-size:13px;color:var(--muted-text)}
-    #out{margin-top:12px}
-    .region-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:10px;margin-top:10px}
-    .post{padding:8px;border-radius:8px;margin-top:8px;border:1px solid rgba(0,0,0,0.03)}
+    #out{margin-top:14px}
+    .region-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:12px;margin-top:10px}
+    .post{padding:10px;border-radius:8px;margin-top:8px;border:1px solid rgba(0,0,0,0.03)}
     .post .top{display:flex;justify-content:space-between;align-items:center}
     .post .title{font-weight:700}
     .post .time{color:var(--muted-text);font-size:13px}
@@ -51,39 +54,41 @@
     .map-header{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--card-border)}
     .map-body{flex:1;position:relative}
     #map{width:100%;height:100%}
-    .map-legend{position:absolute;right:12px;top:12px;padding:10px;border-radius:8px;font-size:13px;color:var(--legend-text);z-index:400;background:var(--dark-legend-bg);border:1px solid rgba(255,255,255,0.06)}
+    .map-legend{position:absolute;right:12px;top:12px;padding:10px;border-radius:8px;font-size:13px;color:var(--legend-text);z-index:400;background:var(--legend-bg);border:1px solid rgba(255,255,255,0.06)}
     .legend-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;color:var(--legend-text)}
     .swatch{width:20px;height:14px;border-radius:3px;display:inline-block}
     .map-footer{padding:8px 12px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;gap:10px}
     .hidden{display:none}
-    .hamburger{position:fixed;left:18px;top:18px;width:44px;height:44px;border-radius:10px;background:var(--card-bg);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;z-index:10001;cursor:pointer;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
-    .ham-lines{width:22px;height:2px;background:var(--text);display:block;position:relative}
+    .hamburger{position:fixed;left:18px;top:18px;width:46px;height:46px;border-radius:10px;background:var(--card-bg);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;z-index:10001;cursor:pointer;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    .ham-lines{width:22px;height:2px;background:var(--text);display:block;position:relative;transition:background .2s}
     .ham-lines::before,.ham-lines::after{content:"";position:absolute;left:0;width:22px;height:2px;background:var(--text);transition:transform .28s,top .28s,opacity .28s}
     .ham-lines::before{top:-7px}
     .ham-lines::after{top:7px}
-    .menu-panel{position:fixed;left:18px;top:72px;width:260px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:10px;box-shadow:0 14px 40px rgba(2,6,23,0.12);z-index:10000;transform-origin:top left;transform:scale(.9);opacity:0;pointer-events:none;transition:transform .22s,opacity .22s}
+    .hamburger.open .ham-lines{background:transparent}
+    .hamburger.open .ham-lines::before{transform:rotate(45deg); top:0}
+    .hamburger.open .ham-lines::after{transform:rotate(-45deg); top:0}
+    .menu-panel{position:fixed;left:18px;top:72px;width:260px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:10px;box-shadow:0 14px 40px rgba(2,6,23,0.12);z-index:10000;transform-origin:top left;transform:scale(.96);opacity:0;pointer-events:none;transition:transform .16s,opacity .16s}
     .menu-panel.open{transform:scale(1);opacity:1;pointer-events:auto}
     .menu-button{display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;border:0;background:transparent;cursor:pointer;width:100%;text-align:left;font-weight:700}
     .menu-button.primary{background:var(--accent);color:white}
     .menu-section{margin-top:8px}
-    .toggle-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 0}
     .mode-switch{padding:6px 8px;border-radius:8px;border:1px solid var(--card-border);background:transparent;cursor:pointer}
-    @media (max-width:800px){.controls{flex-direction:column;align-items:stretch}.right{margin-left:0;justify-content:flex-start}}
+    @media (max-width:800px){.controls{flex-direction:column;align-items:stretch}.right{margin-left:0;justify-content:flex-start}.menu-panel{left:12px;width:86vw}}
   </style>
 </head>
 <body>
-  <div class="hamburger" id="hamburger" aria-label="Меню">
+  <div class="hamburger" id="hamburger" aria-label="Меню" title="Меню">
     <span class="ham-lines" id="hamLines" aria-hidden="true"></span>
   </div>
 
   <div class="menu-panel" id="menuPanel" aria-hidden="true" role="menu">
     <button class="menu-button primary" id="menuLoad">Завантажити</button>
-    <button class="menu-button" id="menuForce">Примусове оновити</button>
-    <button class="menu-button" id="menuOpenMap">Карта України — тривога</button>
+    <button class="menu-button" id="menuForce">Примусово</button>
+    <button class="menu-button" id="menuOpenMap">Відкрити карту</button>
     <div class="menu-section">
-      <div style="font-weight:700;margin-bottom:6px">Дані районів</div>
-      <button class="menu-button" id="menuLoadRayonUrl">Завантажити GeoJSON району (URL)</button>
-      <button class="menu-button" id="menuUploadRayonFile">Завантажити GeoJSON файл</button>
+      <div style="font-weight:700;margin-bottom:6px">Райони (опціонально)</div>
+      <button class="menu-button" id="menuLoadRayonUrl">Завантажити GeoJSON (URL)</button>
+      <button class="menu-button" id="menuUploadRayonFile">Завантажити GeoJSON (файл)</button>
     </div>
     <div class="menu-section">
       <button class="menu-button" id="menuResetBackoff">Скинути backoff</button>
@@ -93,8 +98,8 @@
   <div class="container">
     <header>
       <div>
-        <h1>Повітряні тривоги — області та райони</h1>
-        <div class="muted">Показує тільки сьогоднішні пости. Відкрийте меню (ліворуч) для швидких дій.</div>
+        <h1 id="pageTitle">Повітряні тривоги — області та райони</h1>
+        <div class="muted" id="subtitle">Показує тільки сьогоднішні пости. Відкрийте меню (ліворуч) для швидких дій.</div>
       </div>
       <div style="margin-left:auto;text-align:right">
         <div class="small">Worker: <strong id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</strong></div>
@@ -103,27 +108,28 @@
 
     <section class="controls" role="region" aria-label="Налаштування">
       <div class="left">
+        <label for="channelInput" class="small" style="margin-right:6px">Канал</label>
         <input id="channelInput" type="text" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або ID" />
         <button id="loadBtn" class="btn">Завантажити</button>
         <button id="forceBtn" class="btn ghost">Примусово</button>
-        <label style="display:flex;align-items:center;gap:8px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
       </div>
 
       <div class="right">
         <label class="small">Постів</label>
-        <select id="countSelect"><option>10</option><option selected>20</option><option>30</option></select>
+        <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option></select>
         <label class="small">Інтервал (c)</label>
         <input id="intervalInput" type="number" min="10" value="30" style="width:80px" />
+        <label style="display:flex;align-items:center;gap:8px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
         <button id="openMapBtn" class="btn">Відкрити карту</button>
       </div>
     </section>
 
-    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+    <div style="margin-top:10px;display:flex;gap:12px;align-items:center;">
       <div class="small">Статус: <strong id="statusText">—</strong></div>
       <div id="diag" class="small" style="color:#b91c1c"></div>
     </div>
 
-    <div id="summary" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div id="summary" style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <div style="background:var(--card-bg);border:1px solid var(--card-border);padding:8px;border-radius:10px;font-weight:700">Областей згадано: <span id="oblastsCount">0</span></div>
       <div style="background:var(--card-bg);border:1px solid var(--card-border);padding:8px;border-radius:10px;font-weight:700">Міст згадано: <span id="citiesCount">0</span></div>
       <div id="citiesList" class="small"></div>
@@ -169,7 +175,6 @@
   <script>
     const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
     const KYIV_TZ = "Europe/Kyiv";
-
     const OBLAST_PAIRS = [
       { oblast: "Вінницька", noun: "Вінниця" },
       { oblast: "Волинська", noun: "Волинь" },
@@ -208,9 +213,15 @@
     const closeMapBtn = document.getElementById("closeMapBtn");
     const loadRayonUrlBtn = document.getElementById("loadRayonUrlBtn");
     const rayonFileInput = document.getElementById("rayonFileInput");
-    const menuPanel = document.getElementById("menuPanel");
     const hamburger = document.getElementById("hamburger");
+    const menuPanel = document.getElementById("menuPanel");
     const hamLines = document.getElementById("hamLines");
+    const menuLoad = document.getElementById("menuLoad");
+    const menuForce = document.getElementById("menuForce");
+    const menuOpenMap = document.getElementById("menuOpenMap");
+    const menuLoadRayonUrl = document.getElementById("menuLoadRayonUrl");
+    const menuUploadRayonFile = document.getElementById("menuUploadRayonFile");
+    const menuResetBackoff = document.getElementById("menuResetBackoff");
 
     const countSelect = document.getElementById("countSelect");
     const intervalInput = document.getElementById("intervalInput");
@@ -224,7 +235,6 @@
     const citiesListEl = document.getElementById("citiesList");
     const mapModal = document.getElementById("mapModal");
     const mapMode = document.getElementById("mapMode");
-    document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
 
     let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
     let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0;
@@ -437,7 +447,7 @@
 
       lastOblastCounts = {};
       for(const k of Array.from(allOblastsFound)){ lastOblastCounts[k] = groups[k] ? groups[k].length : 0; }
-      lastRayonCounts = {}; // скинемо поки що
+      lastRayonCounts = {};
       if(showRawAlways.checked) renderRaw(posts); else rawBlock.style.display = "none";
     }
 
@@ -499,113 +509,16 @@
       analyze(channel).catch(()=>{});
     }
 
-    loadBtn.addEventListener("click", ()=> {
-      const raw = channelInput.value.trim();
-      if(!raw) return alert("Вкажіть канал або ID.");
-      const channel = normalizeChannelInput(raw);
-      localStorage.setItem("lastChannel", channel);
-      startPolling(channel);
-    });
-
-    forceBtn.addEventListener("click", ()=> {
-      const raw = channelInput.value.trim();
-      if(!raw) return;
-      backoffMs = 0; localStorage.removeItem("backoffMs");
-      analyze(normalizeChannelInput(raw), {force:true});
-    });
-
-    hamburger.addEventListener("click", ()=>{
-      const open = menuPanel.classList.toggle("open");
-      if(open){
-        hamLines.style.transform = "rotate(45deg)";
-        hamLines.style.background = "transparent";
-        hamLines.style.boxShadow = "none";
-        hamLines.parentElement.style.boxShadow = "0 10px 30px rgba(2,6,23,0.12)";
-        hamLines.style.transition = "transform .28s";
-        hamLines::not;
-      } else {
-        hamLines.style.transform = "";
-        hamLines.style.background = "";
-        hamLines.parentElement.style.boxShadow = "";
-      }
-    });
-
-    document.getElementById("menuLoad").addEventListener("click", ()=> loadBtn.click());
-    document.getElementById("menuForce").addEventListener("click", ()=> forceBtn.click());
-    document.getElementById("menuOpenMap").addEventListener("click", ()=> openMapBtn.click());
-    document.getElementById("menuResetBackoff").addEventListener("click", ()=> {
-      backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
-      diag.textContent = "Backoff скинуто вручну.";
-      const raw = channelInput.value.trim();
-      if(raw) analyze(normalizeChannelInput(raw), {force:true});
-    });
-    document.getElementById("menuLoadRayonUrl").addEventListener("click", ()=> loadRayonUrlBtn.click());
-    document.getElementById("menuUploadRayonFile").addEventListener("click", ()=> rayonFileInput.click());
-
-    openMapBtn.addEventListener("click", async ()=> {
-      mapModal.classList.remove("hidden");
-      mapModal.style.display = "flex";
-      if(!map) initMap();
-      if(!geoJsonOblast) await loadGeoJsonOblast();
-      paintMap();
-      setTimeout(()=>{ if(map) map.invalidateSize(); }, 260);
-    });
-
-    closeMapBtn.addEventListener("click", ()=> {
-      mapModal.classList.add("hidden");
-      mapModal.style.display = "none";
-    });
-
-    loadRayonUrlBtn.addEventListener("click", async ()=>{
-      const url = prompt("Вставте URL до GeoJSON з районами (публічний URL, CORS дозволено):");
-      if(!url) return;
-      diag.textContent = "Завантажую GeoJSON районів...";
-      try{
-        const r = await fetch(url);
-        if(!r.ok) throw new Error("HTTP " + r.status);
-        geoJsonRayon = await r.json();
-        diag.textContent = "GeoJSON районів завантажений.";
-        mapMode.value = "rayon";
-        paintMap();
-      }catch(e){
-        diag.textContent = "Помилка: " + String(e);
-      }
-    });
-
-    rayonFileInput.addEventListener("change", async (ev)=>{
-      const f = ev.target.files && ev.target.files[0];
-      if(!f) return;
-      const txt = await f.text();
-      try{
-        geoJsonRayon = JSON.parse(txt);
-        diag.textContent = "GeoJSON районів завантажений з файлу.";
-        mapMode.value = "rayon";
-        paintMap();
-      }catch(e){
-        diag.textContent = "Помилка розбору файлу: " + String(e);
-      }
-    });
-
-    async function loadGeoJsonOblast(){
-      try{
-        const r = await fetch(mapGeoUrl);
-        if(!r.ok) throw new Error("HTTP " + r.status);
-        geoJsonOblast = await r.json();
-        diag.textContent = "";
-      }catch(e){
-        diag.textContent = "Помилка завантаження GeoJSON областей: " + String(e);
-        geoJsonOblast = null;
-      }
-    }
-
+    // --- Map / GeoJSON ---
+    let geoJsonOblast = null;
+    let geoJsonRayon = null;
     function initMap(){
+      if(map) return;
       map = L.map("map", { zoomControl:true }).setView([49,31], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap' }).addTo(map);
-      geoLayer = L.geoJSON(null, { style: defaultStyle, onEachFeature: onEachFeature }).addTo(map);
     }
 
     function defaultStyle(feature){ return { color:"#444", weight:1, fillColor:"#f2f2f2", fillOpacity:0.6 }; }
-
     function highlightStyle(count){
       if(count >= 10) return { fillColor: "#7a0177", fillOpacity: 0.85, color:"#4b0056", weight:1.6 };
       if(count >= 6) return { fillColor: "#c51b8a", fillOpacity: 0.8, color:"#7a0256", weight:1.4 };
@@ -623,8 +536,14 @@
       if(p.admin) out.push(p.admin);
       if(p.NAME) out.push(p.NAME);
       if(p.name_en) out.push(p.name_en);
-      if(p.NOM) out.push(p.NOM);
       return out.filter(Boolean);
+    }
+
+    function normalizeName(s){
+      if(!s) return "";
+      try{
+        return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9а-яіїєґ'\-\s]/giu,"").replace(/\s+/g," ").trim();
+      }catch(e){ return String(s).toLowerCase().replace(/\s+/g," ").trim(); }
     }
 
     function findMentionCountForFeature(feature){
@@ -654,7 +573,7 @@
       const names = getFeatureNames(feature).join(" / ");
       layer.on({
         mouseover: function(e){ e.target.setStyle({ weight:2, fillOpacity:0.95 }); },
-        mouseout: function(e){ geoLayer.resetStyle(e.target); },
+        mouseout: function(e){ if(geoLayer) geoLayer.resetStyle(e.target); },
         click: function(e){
           const cnt = findMentionCountForFeature(feature) || 0;
           layer.bindPopup("<strong>"+names+"</strong><div class='small'>Згадок: "+cnt+"</div>").openPopup();
@@ -662,19 +581,27 @@
       });
     }
 
-    function paintMap(){
+    async function loadGeoJsonOblast(){
+      try{
+        const r = await fetch(mapGeoUrl);
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        geoJsonOblast = await r.json();
+        diag.textContent = "";
+      }catch(e){
+        geoJsonOblast = null;
+        diag.textContent = "Проблема з GeoJSON областей: " + String(e);
+      }
+    }
+
+    async function paintMap(){
       if(!map) initMap();
       const mode = mapMode.value || "oblast";
-      if(mode === "rayon" && !geoJsonRayon){
-        diag.textContent = "GeoJSON районів не завантажено. Завантажте URL або файл.";
-        return;
-      }
       const source = (mode === "rayon") ? geoJsonRayon : geoJsonOblast;
       if(!source){
         diag.textContent = "GeoJSON для режиму " + mode + " не завантажено.";
         return;
       }
-      if(geoLayer) geoLayer.clearLayers();
+      if(geoLayer) geoLayer.remove();
       geoLayer = L.geoJSON(source, { style: function(feature){
         const cnt = findMentionCountForFeature(feature);
         if(cnt > 0) return highlightStyle(cnt);
@@ -684,6 +611,84 @@
       setTimeout(()=>{ if(map) map.invalidateSize(); }, 200);
     }
 
+    // --- menu and UI handlers ---
+    hamburger.addEventListener("click", ()=>{
+      const open = menuPanel.classList.toggle("open");
+      hamburger.classList.toggle("open", open);
+    });
+    menuLoad.addEventListener("click", ()=> loadBtn.click());
+    menuForce.addEventListener("click", ()=> forceBtn.click());
+    menuOpenMap.addEventListener("click", ()=> openMapBtn.click());
+    menuLoadRayonUrl.addEventListener("click", ()=> loadRayonUrlBtn.click());
+    menuUploadRayonFile.addEventListener("click", ()=> rayonFileInput.click());
+    menuResetBackoff.addEventListener("click", ()=> {
+      backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
+      diag.textContent = "Backoff скинуто вручну.";
+      const raw = channelInput.value.trim();
+      if(raw) analyze(normalizeChannelInput(raw), {force:true});
+    });
+
+    document.getElementById("menuLoadRayonUrl").addEventListener("click", ()=> loadRayonUrlBtn.click());
+
+    // map open/close
+    openMapBtn.addEventListener("click", async ()=>{
+      mapModal.classList.remove("hidden");
+      mapModal.style.display = "flex";
+      if(!map) initMap();
+      if(!geoJsonOblast) await loadGeoJsonOblast();
+      await paintMap();
+    });
+    closeMapBtn.addEventListener("click", ()=> { mapModal.classList.add("hidden"); mapModal.style.display = "none"; });
+
+    // rayon url/file
+    const explicitLoadRayon = document.getElementById("loadRayonUrlBtn");
+    explicitLoadRayon.addEventListener("click", async ()=>{
+      const url = prompt("Вставте URL до GeoJSON з районами (публічний URL, потрібно CORS):");
+      if(!url) return;
+      diag.textContent = "Завантаження GeoJSON районів...";
+      try{
+        const r = await fetch(url);
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        geoJsonRayon = await r.json();
+        diag.textContent = "GeoJSON районів завантажено.";
+        mapMode.value = "rayon";
+        await paintMap();
+      }catch(e){
+        diag.textContent = "Помилка: " + String(e);
+      }
+    });
+
+    rayonFileInput.addEventListener("change", async (ev)=>{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f) return;
+      const txt = await f.text();
+      try{
+        geoJsonRayon = JSON.parse(txt);
+        diag.textContent = "GeoJSON районів завантажений з файлу.";
+        mapMode.value = "rayon";
+        await paintMap();
+      }catch(e){
+        diag.textContent = "Помилка розбору файлу: " + String(e);
+      }
+    });
+
+    // main controls
+    loadBtn.addEventListener("click", ()=>{
+      const raw = channelInput.value.trim();
+      if(!raw) return alert("Вкажіть канал або ID.");
+      const channel = normalizeChannelInput(raw);
+      localStorage.setItem("lastChannel", channel);
+      startPolling(channel);
+    });
+
+    forceBtn.addEventListener("click", ()=> {
+      const raw = channelInput.value.trim();
+      if(!raw) return;
+      backoffMs = 0; localStorage.removeItem("backoffMs");
+      analyze(normalizeChannelInput(raw), {force:true});
+    });
+
+    // init on load
     document.addEventListener("DOMContentLoaded", ()=>{
       const lastFetched = localStorage.getItem("lastFetchedAt");
       if(lastFetched){
@@ -701,7 +706,13 @@
       loadGeoJsonOblast();
     });
 
-    document.getElementById("loadBtn").addEventListener("click", ()=> loadBtn.click());
+    // small helper to expose worker base for buildWorkerUrl used in fetchFromWorker
+    function buildWorkerUrl(channel, extra){ const e = extra ? "&"+extra.replace(/^[&?]+/,"") : ""; return WORKER_BASE + encodeURIComponent(channel) + e; }
+
+    // expose WORKER_BASE constant (kept safe)
+    const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
+
+    // done
   </script>
 </body>
 </html>
