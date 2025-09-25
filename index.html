@@ -3,122 +3,150 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги — карта (виправлено)</title>
+  <title>Повітряні тривоги — карта (області + райони) </title>
   <meta name="color-scheme" content="light dark" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root{
-      --accent: #2563eb;
-      --danger: #dc2626;
-      --muted: #6b7280;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --card-border: #e6edf6;
-      --text: #0f1724;
-      --muted-text: #475569;
-      --new-bg: #fff7ed;
+      --accent:#2563eb;
+      --bg:#f8fafc;
+      --card-bg:#ffffff;
+      --card-border:#e6edf6;
+      --text:#0f1724;
+      --muted:#6b7280;
+      --muted-text:#475569;
+      --dark-legend-bg: rgba(12,12,18,0.9);
+      --legend-text: #ffffff;
     }
     @media (prefers-color-scheme: dark){
       :root{
-        --bg: #030312;
-        --card-bg: #071226;
-        --card-border: #0b2236;
-        --text: #e6eef8;
-        --muted-text: #9aa8bf;
+        --bg:#030312;
+        --card-bg:#071226;
+        --card-border:#0b2236;
+        --text:#e6eef8;
+        --muted-text:#9aa8bf;
       }
     }
-    html,body{ height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
-    .container{ max-width:1100px; margin:24px auto; padding:16px; }
-    header{ display:flex; gap:12px; align-items:flex-end; }
-    h1{ margin:0; font-size:20px; font-weight:700; }
-    .muted{ color:var(--muted-text); font-size:13px; }
-    .controls{ margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--card-border); padding:12px; border-radius:12px; }
-    .left { display:flex; gap:8px; align-items:center; }
-    .right { margin-left:auto; display:flex; gap:8px; align-items:center; }
-    input[type="text"], select, input[type="number"]{ border-radius:8px; padding:8px 10px; border:1px solid var(--card-border); min-height:40px; background:transparent; color:var(--text); }
-    .btn { display:inline-flex; gap:8px; align-items:center; padding:10px 14px; border-radius:10px; cursor:pointer; border:0; background:var(--accent); color:white; font-weight:700; }
-    .btn.secondary{ background:#374151; }
-    .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); }
-    .big { padding:12px 16px; font-size:15px; }
-    .status { display:flex; gap:12px; align-items:center; margin-top:12px; }
-    .badge{ padding:6px 10px; border-radius:999px; background:rgba(37,99,235,0.08); color:var(--accent); font-weight:700; }
-    #summary { margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .summary-pill{ background:var(--card-bg); border:1px solid var(--card-border); padding:8px 12px; border-radius:10px; font-weight:700; color:var(--text); }
-    #out { margin-top:12px; }
-    .region-card{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:10px; padding:12px; margin-top:10px; }
-    .post{ padding:10px; border-radius:8px; margin-top:8px; background:linear-gradient(180deg, transparent, transparent); border:1px solid rgba(0,0,0,0.03); }
-    .post .top{ display:flex; justify-content:space-between; align-items:center; }
-    .post .title{ font-weight:700; }
-    .post .time{ color:var(--muted-text); font-size:13px; }
-    .raw-block{ margin-top:12px; padding:10px; border:1px dashed var(--card-border); border-radius:8px; color:var(--muted-text); }
-    .map-modal{ position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:stretch; justify-content:center; z-index:9999; }
-    .map-panel{ width:94%; max-width:1200px; margin:auto; background:var(--card-bg); border-radius:10px; overflow:hidden; display:flex; flex-direction:column; height:82vh; box-shadow:0 10px 40px rgba(2,6,23,0.4); }
-    .map-header{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid var(--card-border); }
-    .map-body{ flex:1; position:relative; }
-    #map{ width:100%; height:100%; }
-    .map-legend{ position:absolute; right:12px; top:12px; padding:8px; border-radius:8px; font-size:13px; color:#fff; z-index:400; background:rgba(10,10,10,0.85); border:1px solid rgba(255,255,255,0.08); }
-    .legend-row{ display:flex; gap:8px; align-items:center; margin-bottom:6px; color:#fff; }
-    .swatch{ width:20px; height:14px; border-radius:3px; display:inline-block; }
-    .map-footer{ padding:8px 12px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .small{ font-size:13px; color:var(--muted-text); }
-    .hidden{ display:none; }
-    @media (max-width:800px){ .controls{ flex-direction:column; align-items:stretch; } input[type="text"]{ width:100%; } }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    .container{max-width:1100px;margin:18px auto;padding:16px}
+    header{display:flex;gap:12px;align-items:flex-end}
+    h1{margin:0;font-size:18px;font-weight:700}
+    .muted{color:var(--muted-text);font-size:13px}
+    .controls{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--card-border);padding:12px;border-radius:12px}
+    .left{display:flex;gap:8px;align-items:center}
+    .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+    input[type="text"],select,input[type="number"]{border-radius:8px;padding:8px 10px;border:1px solid var(--card-border);min-height:36px;background:transparent;color:var(--text)}
+    .btn{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;cursor:pointer;border:0;background:var(--accent);color:white;font-weight:700}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+    .small{font-size:13px;color:var(--muted-text)}
+    #out{margin-top:12px}
+    .region-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:10px;margin-top:10px}
+    .post{padding:8px;border-radius:8px;margin-top:8px;border:1px solid rgba(0,0,0,0.03)}
+    .post .top{display:flex;justify-content:space-between;align-items:center}
+    .post .title{font-weight:700}
+    .post .time{color:var(--muted-text);font-size:13px}
+    .raw-block{margin-top:12px;padding:10px;border:1px dashed var(--card-border);border-radius:8px;color:var(--muted-text)}
+    .map-modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.55);display:flex;align-items:stretch;justify-content:center;z-index:9999}
+    .map-panel{width:94%;max-width:1200px;margin:auto;background:var(--card-bg);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;height:84vh;box-shadow:0 12px 40px rgba(2,6,23,0.4)}
+    .map-header{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--card-border)}
+    .map-body{flex:1;position:relative}
+    #map{width:100%;height:100%}
+    .map-legend{position:absolute;right:12px;top:12px;padding:10px;border-radius:8px;font-size:13px;color:var(--legend-text);z-index:400;background:var(--dark-legend-bg);border:1px solid rgba(255,255,255,0.06)}
+    .legend-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;color:var(--legend-text)}
+    .swatch{width:20px;height:14px;border-radius:3px;display:inline-block}
+    .map-footer{padding:8px 12px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .hidden{display:none}
+    .hamburger{position:fixed;left:18px;top:18px;width:44px;height:44px;border-radius:10px;background:var(--card-bg);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;z-index:10001;cursor:pointer;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    .ham-lines{width:22px;height:2px;background:var(--text);display:block;position:relative}
+    .ham-lines::before,.ham-lines::after{content:"";position:absolute;left:0;width:22px;height:2px;background:var(--text);transition:transform .28s,top .28s,opacity .28s}
+    .ham-lines::before{top:-7px}
+    .ham-lines::after{top:7px}
+    .menu-panel{position:fixed;left:18px;top:72px;width:260px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:10px;box-shadow:0 14px 40px rgba(2,6,23,0.12);z-index:10000;transform-origin:top left;transform:scale(.9);opacity:0;pointer-events:none;transition:transform .22s,opacity .22s}
+    .menu-panel.open{transform:scale(1);opacity:1;pointer-events:auto}
+    .menu-button{display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;border:0;background:transparent;cursor:pointer;width:100%;text-align:left;font-weight:700}
+    .menu-button.primary{background:var(--accent);color:white}
+    .menu-section{margin-top:8px}
+    .toggle-row{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:6px 0}
+    .mode-switch{padding:6px 8px;border-radius:8px;border:1px solid var(--card-border);background:transparent;cursor:pointer}
+    @media (max-width:800px){.controls{flex-direction:column;align-items:stretch}.right{margin-left:0;justify-content:flex-start}}
   </style>
 </head>
 <body>
+  <div class="hamburger" id="hamburger" aria-label="Меню">
+    <span class="ham-lines" id="hamLines" aria-hidden="true"></span>
+  </div>
+
+  <div class="menu-panel" id="menuPanel" aria-hidden="true" role="menu">
+    <button class="menu-button primary" id="menuLoad">Завантажити</button>
+    <button class="menu-button" id="menuForce">Примусове оновити</button>
+    <button class="menu-button" id="menuOpenMap">Карта України — тривога</button>
+    <div class="menu-section">
+      <div style="font-weight:700;margin-bottom:6px">Дані районів</div>
+      <button class="menu-button" id="menuLoadRayonUrl">Завантажити GeoJSON району (URL)</button>
+      <button class="menu-button" id="menuUploadRayonFile">Завантажити GeoJSON файл</button>
+    </div>
+    <div class="menu-section">
+      <button class="menu-button" id="menuResetBackoff">Скинути backoff</button>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <div>
-        <h1>Повітряні тривоги — карта</h1>
-        <div class="muted">Показує пости сьогодні. Відкрити карту для підсвітки областей.</div>
+        <h1>Повітряні тривоги — області та райони</h1>
+        <div class="muted">Показує тільки сьогоднішні пости. Відкрийте меню (ліворуч) для швидких дій.</div>
       </div>
-      <div style="margin-left:auto; text-align:right;">
+      <div style="margin-left:auto;text-align:right">
         <div class="small">Worker: <strong id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</strong></div>
       </div>
     </header>
 
-    <section class="controls">
+    <section class="controls" role="region" aria-label="Налаштування">
       <div class="left">
         <input id="channelInput" type="text" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або ID" />
-        <button id="loadBtn" class="btn big">Завантажити</button>
-        <button id="openMapBtn" class="btn big">Карта України, тривога</button>
+        <button id="loadBtn" class="btn">Завантажити</button>
+        <button id="forceBtn" class="btn ghost">Примусово</button>
+        <label style="display:flex;align-items:center;gap:8px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
       </div>
 
       <div class="right">
         <label class="small">Постів</label>
-        <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option></select>
+        <select id="countSelect"><option>10</option><option selected>20</option><option>30</option></select>
         <label class="small">Інтервал (c)</label>
         <input id="intervalInput" type="number" min="10" value="30" style="width:80px" />
-        <label style="display:flex;align-items:center;gap:6px"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Сирі пости</span></label>
+        <button id="openMapBtn" class="btn">Відкрити карту</button>
       </div>
     </section>
 
-    <div class="status">
-      <div class="badge">Статус: <span id="statusText" style="margin-left:8px">—</span></div>
-      <div id="diag" class="small" style="margin-left:8px"></div>
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+      <div class="small">Статус: <strong id="statusText">—</strong></div>
+      <div id="diag" class="small" style="color:#b91c1c"></div>
     </div>
 
-    <div id="summary">
-      <div class="summary-pill">Областей згадано: <strong id="oblastsCount">0</strong></div>
-      <div class="summary-pill">Міст згадано: <strong id="citiesCount">0</strong></div>
+    <div id="summary" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="background:var(--card-bg);border:1px solid var(--card-border);padding:8px;border-radius:10px;font-weight:700">Областей згадано: <span id="oblastsCount">0</span></div>
+      <div style="background:var(--card-bg);border:1px solid var(--card-border);padding:8px;border-radius:10px;font-weight:700">Міст згадано: <span id="citiesCount">0</span></div>
       <div id="citiesList" class="small"></div>
     </div>
 
     <div id="out"></div>
-    <div id="raw" class="raw-block" style="display:none;"></div>
+    <div id="raw" class="raw-block" style="display:none"></div>
   </div>
 
-  <div id="mapModal" class="map-modal hidden" role="dialog" aria-modal="true" aria-label="Карта України тривог">
+  <div id="mapModal" class="map-modal hidden" aria-hidden="true" role="dialog" aria-label="Карта областей">
     <div class="map-panel" role="document">
       <div class="map-header">
         <button id="closeMapBtn" class="btn ghost">Закрити карту</button>
-        <div style="margin-left:12px; font-weight:700">Карта України — області з тривогами</div>
-        <div style="margin-left:auto" id="mapSubtitle" class="small"></div>
+        <div style="margin-left:12px;font-weight:700">Карта України — області / райони</div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <div class="small">Режим:</div>
+          <select id="mapMode" class="mode-switch"><option value="oblast">області</option><option value="rayon">райони</option></select>
+        </div>
       </div>
       <div class="map-body">
         <div id="map"></div>
-        <div id="legend" class="map-legend">
-          <div style="font-weight:700; margin-bottom:6px; color:#fff">Легенда</div>
+        <div id="legend" class="map-legend" aria-hidden="false">
+          <div style="font-weight:700;margin-bottom:6px;color:#fff">Легенда</div>
           <div class="legend-row"><span class="swatch" style="background:#7a0177"></span><span> дуже багато згадок</span></div>
           <div class="legend-row"><span class="swatch" style="background:#c51b8a"></span><span> багато</span></div>
           <div class="legend-row"><span class="swatch" style="background:#f768a1"></span><span> помірно</span></div>
@@ -127,9 +155,10 @@
         </div>
       </div>
       <div class="map-footer">
-        <div class="small">Дані: публічні пости каналу (сьогодні)</div>
-        <div>
-          <button id="retryGeoBtn" class="btn ghost">Повторити завантаження гео</button>
+        <div class="small">Дані: сьогоднішні пости каналу</div>
+        <div style="display:flex;gap:8px">
+          <button id="loadRayonUrlBtn" class="btn ghost">Вставити URL GeoJSON районів</button>
+          <label class="btn ghost" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Завантажити файл<input type="file" id="rayonFileInput" accept=".geojson,.json" style="display:none"></label>
         </div>
       </div>
     </div>
@@ -140,6 +169,7 @@
   <script>
     const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
     const KYIV_TZ = "Europe/Kyiv";
+
     const OBLAST_PAIRS = [
       { oblast: "Вінницька", noun: "Вінниця" },
       { oblast: "Волинська", noun: "Волинь" },
@@ -173,9 +203,15 @@
 
     const channelInput = document.getElementById("channelInput");
     const loadBtn = document.getElementById("loadBtn");
+    const forceBtn = document.getElementById("forceBtn");
     const openMapBtn = document.getElementById("openMapBtn");
     const closeMapBtn = document.getElementById("closeMapBtn");
-    const retryGeoBtn = document.getElementById("retryGeoBtn");
+    const loadRayonUrlBtn = document.getElementById("loadRayonUrlBtn");
+    const rayonFileInput = document.getElementById("rayonFileInput");
+    const menuPanel = document.getElementById("menuPanel");
+    const hamburger = document.getElementById("hamburger");
+    const hamLines = document.getElementById("hamLines");
+
     const countSelect = document.getElementById("countSelect");
     const intervalInput = document.getElementById("intervalInput");
     const showRawAlways = document.getElementById("showRawAlways");
@@ -187,8 +223,7 @@
     const citiesCountEl = document.getElementById("citiesCount");
     const citiesListEl = document.getElementById("citiesList");
     const mapModal = document.getElementById("mapModal");
-    const legend = document.getElementById("legend");
-    const mapSubtitle = document.getElementById("mapSubtitle");
+    const mapMode = document.getElementById("mapMode");
     document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
 
     let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
@@ -196,7 +231,9 @@
     let POLL_TIMER = null;
     let lastSavedPosts = [];
     let lastOblastCounts = {};
-    let geoJsonData = null;
+    let lastRayonCounts = {};
+    let geoJsonOblast = null;
+    let geoJsonRayon = null;
     let map = null;
     let geoLayer = null;
 
@@ -209,21 +246,27 @@
     function getKyivDateString(ms){ try{ const d = new Date(ms); return new Intl.DateTimeFormat("en-CA", { timeZone: KYIV_TZ }).format(d); }catch(e){ return ""; } }
     function formatKyiv(pubDate){ try{ const d = new Date(pubDate); if(isNaN(d)) return pubDate || ""; return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}); }catch(e){ return pubDate||""; } }
 
+    function normalizeName(s){
+      if(!s) return "";
+      try{
+        return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9а-яіїєґ'\-\s]/giu,"").replace(/\s+/g," ").trim();
+      }catch(e){ return String(s).toLowerCase().replace(/\s+/g," ").trim(); }
+    }
+
     function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
     function capitalizeUkr(s){ return s.replace(/\s+/g," ").replace(/(^|\s)([а-яіїєґA-ЯІЇЄҐ])/gu, (m, a, b)=> a + b.toUpperCase()); }
-    function validCityName(name){ if(!name) return false; if(name.length < 3) return false; const stop = ["область","області","областю","район","району","місто","міст","село","смт","курсом","півночі","півдні","захід","схід"]; const lower = name.toLowerCase(); for(const s of stop) if(lower.indexOf(s) !== -1) return false; return true; }
+    function validCityName(name){ if(!name) return false; if(name.length < 3) return false; const stop = ["область","області","район","району","місто","міст","село","смт","курсом","півночі","півдні","захід","схід"]; const lower = name.toLowerCase(); for(const s of stop) if(lower.indexOf(s) !== -1) return false; return true; }
 
     function extractOblastsFromText(text){
       const found = new Set();
       if(!text) return [];
+      const ntext = normalizeName(text);
       for(const p of OBLAST_PAIRS){
-        const parts = [];
-        parts.push(p.oblast);
-        parts.push(p.noun);
-        const alt = p.noun.replace(/(ь|а|я|й|о|и|і)$/iu, "");
-        parts.push(alt);
-        const re = new RegExp("\\b(?:" + parts.map(s=>escapeRegex(s)).join("|") + ")\\b", "iu");
-        if(re.test(text)) found.add(p.oblast);
+        const candidates = [p.oblast, p.noun, p.noun.replace(/(ь|а|я|й|о|и|і)$/iu,"")].map(c=>normalizeName(c));
+        for(const c of candidates){
+          if(!c) continue;
+          if(ntext.indexOf(c) !== -1) found.add(p.oblast);
+        }
       }
       return Array.from(found);
     }
@@ -240,11 +283,6 @@
       const prep = new RegExp("\\b(?:в|у|на|біля|поблизу|околицях|районі|р-ні|район)\\s+([А-ЯІЇЄҐ][а-яіїєґ'\\-\\s]{2,60})","giu");
       while((m = prep.exec(text)) !== null){
         const name = m[1].trim().replace(/[.,:;!?)]+$/,"").replace(/\s+/g," ");
-        if(validCityName(name)) cities.push(capitalizeUkr(name));
-      }
-      const afterColon = new RegExp("([А-ЯІЇЄҐ][а-яіїєґ'\\-\\s]{2,60})\\s*-\\s*(?:в|у|на)","giu");
-      while((m = afterColon.exec(text)) !== null){
-        const name = m[1].trim().replace(/\s+/g," ");
         if(validCityName(name)) cities.push(capitalizeUkr(name));
       }
       const uniq = Array.from(new Set(cities));
@@ -268,6 +306,7 @@
       try{
         diag.textContent = "";
         loadBtn.setAttribute("disabled","true");
+        forceBtn.setAttribute("disabled","true");
 
         if(backoffMs > 0 && !options.force){
           diag.textContent = "Backoff активний: чекати " + Math.round(backoffMs/1000) + " c";
@@ -326,7 +365,7 @@
             diag.textContent = "Немає постів за сьогодні; показано останні відомі пости сьогодні. Порожніх відповідей поспіль: " + consecutiveEmpty;
             if(consecutiveEmpty >= 2) setChannelStatus(false, "закритий");
           } else {
-            out.innerHTML = "<div style='padding:12px; border-radius:10px; background:#fff7ed; color:#92400e'>Сьогодні постів немає.</div>";
+            out.innerHTML = "<div style='padding:12px;border-radius:10px;background:#fff7ed;color:#92400e'>Сьогодні постів немає.</div>";
             setChannelStatus(false, "закритий");
             diag.textContent = "За сьогодні постів не знайдено.";
           }
@@ -344,15 +383,18 @@
           renderAll(filterSavedToday, normalizeChannelInput(channelInput.value||""), true);
           diag.textContent = "Помилка: " + String(e) + " — показано збережені (сьогодні). Backoff: " + Math.round(backoffMs/1000) + " c";
         } else {
-          out.innerHTML = '<div style="padding:12px; border-radius:10px; background:#fff0f0; color:var(--danger)">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
+          out.innerHTML = '<div style="padding:12px;border-radius:10px;background:#fff0f0;color:#b91c1c">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
           diag.textContent = String(e);
         }
       } finally {
         loadBtn.removeAttribute("disabled");
+        forceBtn.removeAttribute("disabled");
       }
     }
 
-    function setChannelStatus(open, text){ if(open) statusText.textContent = text || "відкритий"; else statusText.textContent = text || "закритий"; }
+    function setChannelStatus(open, text){
+      statusText.textContent = text || (open ? "відкритий" : "закритий");
+    }
 
     function renderAll(posts, channel, isStale){
       const groups = {};
@@ -392,8 +434,10 @@
       const cityKeys = Object.keys(cityCounts).sort((a,b)=>cityCounts[b]-cityCounts[a]);
       citiesCountEl.textContent = String(cityKeys.length);
       citiesListEl.innerHTML = cityKeys.slice(0,10).map(k=>k + " ("+cityCounts[k]+")").join(", ");
+
       lastOblastCounts = {};
       for(const k of Array.from(allOblastsFound)){ lastOblastCounts[k] = groups[k] ? groups[k].length : 0; }
+      lastRayonCounts = {}; // скинемо поки що
       if(showRawAlways.checked) renderRaw(posts); else rawBlock.style.display = "none";
     }
 
@@ -463,41 +507,104 @@
       startPolling(channel);
     });
 
+    forceBtn.addEventListener("click", ()=> {
+      const raw = channelInput.value.trim();
+      if(!raw) return;
+      backoffMs = 0; localStorage.removeItem("backoffMs");
+      analyze(normalizeChannelInput(raw), {force:true});
+    });
+
+    hamburger.addEventListener("click", ()=>{
+      const open = menuPanel.classList.toggle("open");
+      if(open){
+        hamLines.style.transform = "rotate(45deg)";
+        hamLines.style.background = "transparent";
+        hamLines.style.boxShadow = "none";
+        hamLines.parentElement.style.boxShadow = "0 10px 30px rgba(2,6,23,0.12)";
+        hamLines.style.transition = "transform .28s";
+        hamLines::not;
+      } else {
+        hamLines.style.transform = "";
+        hamLines.style.background = "";
+        hamLines.parentElement.style.boxShadow = "";
+      }
+    });
+
+    document.getElementById("menuLoad").addEventListener("click", ()=> loadBtn.click());
+    document.getElementById("menuForce").addEventListener("click", ()=> forceBtn.click());
+    document.getElementById("menuOpenMap").addEventListener("click", ()=> openMapBtn.click());
+    document.getElementById("menuResetBackoff").addEventListener("click", ()=> {
+      backoffMs = 0; consecutiveEmpty = 0; localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
+      diag.textContent = "Backoff скинуто вручну.";
+      const raw = channelInput.value.trim();
+      if(raw) analyze(normalizeChannelInput(raw), {force:true});
+    });
+    document.getElementById("menuLoadRayonUrl").addEventListener("click", ()=> loadRayonUrlBtn.click());
+    document.getElementById("menuUploadRayonFile").addEventListener("click", ()=> rayonFileInput.click());
+
     openMapBtn.addEventListener("click", async ()=> {
       mapModal.classList.remove("hidden");
+      mapModal.style.display = "flex";
       if(!map) initMap();
-      if(!geoJsonData) await loadGeoJson();
-      paintOblastsOnMap();
-      setTimeout(()=>{ if(map) map.invalidateSize(); }, 250);
+      if(!geoJsonOblast) await loadGeoJsonOblast();
+      paintMap();
+      setTimeout(()=>{ if(map) map.invalidateSize(); }, 260);
     });
 
-    closeMapBtn.addEventListener("click", ()=> { mapModal.classList.add("hidden"); });
-
-    retryGeoBtn.addEventListener("click", async ()=> {
-      diag.textContent = "Завантаження гео...";
-      await loadGeoJson();
-      paintOblastsOnMap();
+    closeMapBtn.addEventListener("click", ()=> {
+      mapModal.classList.add("hidden");
+      mapModal.style.display = "none";
     });
 
-    async function loadGeoJson(){
+    loadRayonUrlBtn.addEventListener("click", async ()=>{
+      const url = prompt("Вставте URL до GeoJSON з районами (публічний URL, CORS дозволено):");
+      if(!url) return;
+      diag.textContent = "Завантажую GeoJSON районів...";
+      try{
+        const r = await fetch(url);
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        geoJsonRayon = await r.json();
+        diag.textContent = "GeoJSON районів завантажений.";
+        mapMode.value = "rayon";
+        paintMap();
+      }catch(e){
+        diag.textContent = "Помилка: " + String(e);
+      }
+    });
+
+    rayonFileInput.addEventListener("change", async (ev)=>{
+      const f = ev.target.files && ev.target.files[0];
+      if(!f) return;
+      const txt = await f.text();
+      try{
+        geoJsonRayon = JSON.parse(txt);
+        diag.textContent = "GeoJSON районів завантажений з файлу.";
+        mapMode.value = "rayon";
+        paintMap();
+      }catch(e){
+        diag.textContent = "Помилка розбору файлу: " + String(e);
+      }
+    });
+
+    async function loadGeoJsonOblast(){
       try{
         const r = await fetch(mapGeoUrl);
-        if(!r.ok) throw new Error("Не вдалося завантажити GeoJSON: HTTP " + r.status);
-        geoJsonData = await r.json();
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        geoJsonOblast = await r.json();
         diag.textContent = "";
       }catch(e){
-        diag.textContent = "Помилка завантаження геоданих: " + String(e);
-        geoJsonData = null;
+        diag.textContent = "Помилка завантаження GeoJSON областей: " + String(e);
+        geoJsonOblast = null;
       }
     }
 
     function initMap(){
-      map = L.map("map", { zoomControl:true }).setView([49, 31], 6);
+      map = L.map("map", { zoomControl:true }).setView([49,31], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap' }).addTo(map);
       geoLayer = L.geoJSON(null, { style: defaultStyle, onEachFeature: onEachFeature }).addTo(map);
     }
 
-    function defaultStyle(feature){ return { color: "#444", weight: 1, fillColor: "#f2f2f2", fillOpacity: 0.6 }; }
+    function defaultStyle(feature){ return { color:"#444", weight:1, fillColor:"#f2f2f2", fillOpacity:0.6 }; }
 
     function highlightStyle(count){
       if(count >= 10) return { fillColor: "#7a0177", fillOpacity: 0.85, color:"#4b0056", weight:1.6 };
@@ -507,20 +614,6 @@
       return { fillColor: "#fde0ef", fillOpacity: 0.7, color:"#d07c9b", weight:0.9 };
     }
 
-    function onEachFeature(feature, layer){
-      const nameCandidates = getFeatureNames(feature);
-      layer.on({
-        mouseover: function(e){ e.target.setStyle({ weight:2, fillOpacity:0.95 }); },
-        mouseout: function(e){ geoLayer.resetStyle(e.target); },
-        click: function(e){
-          const props = feature.properties || {};
-          const names = nameCandidates.join(" / ");
-          const count = findOblastMentionCountByFeature(feature) || 0;
-          layer.bindPopup("<strong>"+ names +"</strong><div class='small' style='color:#222'>Згадок: "+count+"</div>").openPopup();
-        }
-      });
-    }
-
     function getFeatureNames(feature){
       const p = feature.properties || {};
       const out = [];
@@ -528,39 +621,67 @@
       if(p.NAME_1) out.push(p.NAME_1);
       if(p.name_uk) out.push(p.name_uk);
       if(p.admin) out.push(p.admin);
+      if(p.NAME) out.push(p.NAME);
       if(p.name_en) out.push(p.name_en);
+      if(p.NOM) out.push(p.NOM);
       return out.filter(Boolean);
     }
 
-    function findOblastMentionCountByFeature(feature){
-      const names = getFeatureNames(feature).map(s => String(s).toLowerCase());
-      for(const pair of OBLAST_PAIRS){
-        const candidates = [pair.oblast, pair.noun, pair.noun.replace(/(ь|а|я|й|о|и|і)$/iu,"")].map(s=>String(s||"").toLowerCase());
-        for(const c of candidates){
-          for(const fn of names){
-            if(fn.indexOf(c) !== -1) return lastOblastCounts[pair.oblast] || 0;
+    function findMentionCountForFeature(feature){
+      const names = getFeatureNames(feature).map(s => normalizeName(s));
+      const mode = mapMode.value || "oblast";
+      if(mode === "rayon" && Object.keys(lastRayonCounts || {}).length > 0){
+        for(const n of names){
+          for(const rc in lastRayonCounts){
+            if(n.indexOf(normalizeName(rc)) !== -1) return lastRayonCounts[rc] || 0;
+          }
+        }
+      }
+      if(mode === "oblast"){
+        for(const n of names){
+          for(const pair of OBLAST_PAIRS){
+            const cands = [pair.oblast, pair.noun, pair.noun.replace(/(ь|а|я|й|о|и|і)$/iu,"")].map(x=>normalizeName(x));
+            for(const c of cands){
+              if(c && n.indexOf(c) !== -1) return lastOblastCounts[pair.oblast] || 0;
+            }
           }
         }
       }
       return 0;
     }
 
-    function paintOblastsOnMap(){
+    function onEachFeature(feature, layer){
+      const names = getFeatureNames(feature).join(" / ");
+      layer.on({
+        mouseover: function(e){ e.target.setStyle({ weight:2, fillOpacity:0.95 }); },
+        mouseout: function(e){ geoLayer.resetStyle(e.target); },
+        click: function(e){
+          const cnt = findMentionCountForFeature(feature) || 0;
+          layer.bindPopup("<strong>"+names+"</strong><div class='small'>Згадок: "+cnt+"</div>").openPopup();
+        }
+      });
+    }
+
+    function paintMap(){
       if(!map) initMap();
-      if(!geoJsonData){
-        diag.textContent = "Геодані не завантажені.";
+      const mode = mapMode.value || "oblast";
+      if(mode === "rayon" && !geoJsonRayon){
+        diag.textContent = "GeoJSON районів не завантажено. Завантажте URL або файл.";
+        return;
+      }
+      const source = (mode === "rayon") ? geoJsonRayon : geoJsonOblast;
+      if(!source){
+        diag.textContent = "GeoJSON для режиму " + mode + " не завантажено.";
         return;
       }
       if(geoLayer) geoLayer.clearLayers();
-      geoLayer = L.geoJSON(geoJsonData, { style: function(feature){
-        const cnt = findOblastMentionCountByFeature(feature);
+      geoLayer = L.geoJSON(source, { style: function(feature){
+        const cnt = findMentionCountForFeature(feature);
         if(cnt > 0) return highlightStyle(cnt);
         return defaultStyle(feature);
       }, onEachFeature: onEachFeature }).addTo(map);
-      try{
-        map.fitBounds(geoLayer.getBounds(), { padding:[20,20] });
-      }catch(e){}
-      mapSubtitle.textContent = "Оновлено: " + nowStr();
+      try{ map.fitBounds(geoLayer.getBounds(), { padding:[20,20] }); }catch(e){}
+      setTimeout(()=>{ if(map) map.invalidateSize(); }, 200);
     }
 
     document.addEventListener("DOMContentLoaded", ()=>{
@@ -577,9 +698,10 @@
       if(saved) channelInput.value = saved;
       const initial = normalizeChannelInput(channelInput.value||"kpszsu");
       if(initial) startPolling(initial);
+      loadGeoJsonOblast();
     });
 
-    function normalizeChannelInput(raw){ if(!raw) return ""; raw = raw.trim(); if(raw.startsWith("@")) raw = raw.slice(1); try{ const u = new URL(raw); const p = u.pathname.replace(/^\/+|\/+$/g,""); if(p.length>0) return p.split("/")[0]; return raw; }catch(e){ return raw; } }
+    document.getElementById("loadBtn").addEventListener("click", ()=> loadBtn.click());
   </script>
 </body>
 </html>
