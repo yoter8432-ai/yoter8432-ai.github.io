@@ -3,539 +3,159 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Мапа тривог — live (скрейпінг)</title>
+  <title>Мапа повітряних тривог — Україна (без токена)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
-    :root{--bg:#0b1220;--card:#0f182a;--line:#1c2537;--text:#e6e9ef;--muted:#99a2b4;--ok:#9be49b;--bad:#ff8d8d;--chip:#2a3550;--brand:#6ea8fe}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
-    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(11,18,32,.9),rgba(11,18,32,.8));backdrop-filter:blur(6px);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .title{font-weight:800}.chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--chip);border-radius:999px;padding:6px 12px;font-size:12px}
-    main{max-width:1100px;margin:0 auto;padding:18px}.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.muted{color:var(--muted)}.pill{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--chip)}
-    .row{display:flex;justify-content:space-between;gap:12px;align-items:center}.count{font-size:34px;font-weight:900}.list{margin-top:8px}
-    .item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}.item:last-child{border-bottom:0}
-    .oblast{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px}
-    .badge{font-size:12px;border:1px solid var(--chip);border-radius:999px;padding:2px 8px}
-    .on{color:var(--bad);border-color:rgba(255,141,141,.35);animation:pulse 1.5s infinite}
-    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,141,141,.35)}70%{box-shadow:0 0 0 8px rgba(255,141,141,0)}100%{box-shadow:0 0 0 0 rgba(255,141,141,0)}}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap}button{background:#13223a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
-    button[aria-pressed="true"]{outline:2px solid var(--brand)} a{color:var(--brand);text-decoration:none} footer{color:var(--muted);text-align:center;padding:18px}
+    .pulse-dot{width:10px;height:10px;border-radius:9999px;position:relative;display:inline-block;margin-right:.5rem;background:currentColor}
+    .pulse-dot::after{content:"";position:absolute;inset:-6px;border-radius:9999px;border:2px solid currentColor;opacity:.6;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%{transform:scale(.6);opacity:.6}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
+    .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
   </style>
 </head>
-<body>
-  <header>
-    <div class="title">Мапа тривог — live</div>
-    <div class="chip">Джерело: скрейпінг публічної сторінки</div>
-    <div class="chip" id="status">Статус: ініціалізація…</div>
-    <div class="toolbar">
-      <button id="soundBtn" aria-pressed="false">🔕 Звук</button>
-      <span class="pill" id="updated">—</span>
-    </div>
-  </header>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+  <div class="max-w-6xl mx-auto p-4 sm:p-6">
+    <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold">Повітряні тривоги — Україна</h1>
+        <p class="text-sm text-gray-500">
+          Дані без токена • рівень областей • автооновлення кожні 20 секунд
+        </p>
+      </div>
+      <div class="text-right text-xs text-gray-500">
+        Оновлено: <span id="updated" class="mono">—</span><br />
+        Часовий пояс: Europe/Kyiv
+      </div>
+    </header>
 
-  <main>
-    <section class="card">
-      <div class="row">
-        <div>
-          <div class="muted">Активні області (повітряна тривога)</div>
-          <div class="count" id="activeCount">—</div>
-        </div>
-        <span class="pill">Оновлення: live (SSE) + резерв 10 с</span>
+    <section class="mb-4">
+      <div class="flex flex-wrap gap-2 items-center text-sm">
+        <span class="inline-flex items-center rounded-full px-3 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+          <span class="pulse-dot" style="color:#ef4444"></span>Активні тривоги
+        </span>
+        <span class="inline-flex items-center rounded-full px-3 py-1 bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+          Областей під тривогою: <span id="regionsCount" class="ml-1 font-semibold">0</span>
+        </span>
+      </div>
+      <div class="mt-2 p-3 rounded-xl bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-200 text-xs">
+        Примітка: публічні безключові джерела зазвичай повертають лише регіональний рівень (без переліку міст/громад).
       </div>
     </section>
 
-    <section class="cards" id="grid"></section>
+    <div id="list" class="grid gap-4"></div>
 
-    <section class="card">
-      <div class="muted">Останні сповіщення</div>
-      <div id="feed" class="list">Завантаження…</div>
-    </section>
-  </main>
-
-  <footer>
-    Демо без токенів. Перевіряйте правила використання джерела даних.
-  </footer>
+    <footer class="mt-10 text-xs text-gray-500">
+      Джерело: публічний обгортковий API <span class="underline">siren.pp.ua</span> (без токена), який використовує інтеграція Home Assistant “Ukraine Alarm”. 
+      За потреби можна підключити інше відкрите джерело (див. <code>ADAPTER.parse()</code>). :contentReference[oaicite:3]{index=3}
+    </footer>
+  </div>
 
   <script>
-    const statusEl = document.getElementById('status');
-    const updEl = document.getElementById('updated');
-    const activeCountEl = document.getElementById('activeCount');
-    const gridEl = document.getElementById('grid');
-    const feedEl = document.getElementById('feed');
-    const soundBtn = document.getElementById('soundBtn');
+    // ==== НАЛАШТУВАННЯ ДЖЕРЕЛА ДАНИХ (без токена) ====
+    // За замовчуванням намагаємось читати JSON із публічного API-обгортки (без ключа).
+    // Якщо у тебе інша відкрита URL-адреса з подібною структурою — заміни ENDPOINT та адаптер.
+    const KYIV_TZ = "Europe/Kyiv";
+    const POLL_MS = 20000;
 
-    let lastActiveIds = new Set();
-    let soundOn = false;
-    let audioCtx;
+    // Приклад відкритої кінцевої точки (публічна обгортка без токена).
+    // У деяких розгортаннях шлях може відрізнятись; за потреби заміни на свій mirror/endpoint.
+    const ENDPOINT = "https://siren.pp.ua/api/states"; // рівень областей (без токена)
 
-    soundBtn.addEventListener('click', () => {
-      soundOn = !soundOn;
-      soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
-      soundBtn.textContent = soundOn ? '🔔 Звук' : '🔕 Звук';
-      if (soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    });
-    function beep(){
-      if (!soundOn || !audioCtx) return;
-      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination); o.type='sine'; o.frequency.value=880;
-      g.gain.setValueAtTime(0.0001,audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2,audioCtx.currentTime+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6);
-      o.start(); o.stop(audioCtx.currentTime+0.6);
-    }
-    const fmtTime = iso => { try { return new Date(iso).toLocaleString('uk-UA'); } catch { return '—'; } };
-
-    function render(states){
-      const list = states.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-      const active = list.filter(s=>!!s.alert);
-      const currentActive = new Set(active.map(s=> s.id));
-      let newOn = false; currentActive.forEach(id => { if(!lastActiveIds.has(id)) newOn=true; });
-      if (newOn) beep(); lastActiveIds = currentActive;
-
-      activeCountEl.textContent = active.length;
-      updEl.textContent = "Оновлено: " + new Date().toLocaleTimeString("uk-UA");
-      gridEl.innerHTML = list.map(s=>`
-        <div class="oblast ${s.alert ? 'on':''}">
-          <div>
-            <strong>${s.name || ('Область #' + s.id)}</strong><br>
-            <span class="muted">${s.alert ? 'ТРИВОГА' : 'спокійно'} · ${fmtTime(s.changed)}</span>
-          </div>
-          <span class="badge ${s.alert?'on':''}">${s.alert?'A':'N'}</span>
-        </div>`).join("");
-      feedEl.innerHTML = active.length
-        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong> — тривога</div><div class="muted">${fmtTime(s.changed)}</div></div>`).join("")
-        : '<div class="muted">Наразі тривог немає 🎉</div>';
-    }
-
-    async function refresh(){
-      try {
-        const r = await fetch("/states", {cache:"no-store"});
-        if (!r.ok) throw new Error("HTTP "+r.status);
-        const data = await r.json();
-        if (data?.states) render(data.states);
-        statusEl.textContent = "Статус: онлайн";
-      } catch(e){
-        statusEl.textContent = "Статус: помилка";
-        console.error(e);
+    // Адаптер під очікуваний формат: [{ id, name, alert, changed }]
+    const ADAPTER = {
+      async load() {
+        const res = await fetch(ENDPOINT, { headers: { "Accept": "application/json" }, cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      },
+      parse(json) {
+        // Підтримка варіантів: {states:[...]} або просто [...]
+        const states = Array.isArray(json?.states) ? json.states : Array.isArray(json) ? json : [];
+        // Очікуємо поля name (назва області українською), alert (true/false), changed (ISO-дата)
+        return states.map(s => ({
+          id: s.id ?? s.state_id ?? null,
+          name: s.name ?? s.title ?? "Невідома область",
+          alert: Boolean(s.alert),
+          changed: s.changed ?? s.date ?? null
+        }));
       }
-    }
-
-    function startSSE(){
-      try {
-        const es = new EventSource("/live");
-        es.onopen = () => statusEl.textContent = "Статус: live підключено";
-        es.onerror = () => statusEl.textContent = "Статус: live недоступне";
-        es.onmessage = ev => {
-          const msg = JSON.parse(ev.data);
-          if (msg?.type === "states") render(msg.data.states);
-        };
-      } catch { /* noop */ }
-    }
-
-    refresh();
-    setInterval(refresh, 10000);
-    startSSE();
-  </script>
-</body>
-</html>
-        o.connect(g); g.connect(audioCtx.destination);
-        o.type = 'sine'; o.frequency.value = 880;
-        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
-        o.start(); o.stop(audioCtx.currentTime + 0.6);
-      }catch(e){/* ignore */}
-    }
-
-    const fmtTime = (iso) => {
-      try { return new Date(iso).toLocaleString('uk-UA'); } catch { return '—'; }
     };
 
-    function renderStates(data){
-      if (!data || !Array.isArray(data.states)) return;
-      const states = data.states.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-      const active = states.filter(s=> !!s.alert);
-
-      const currentActiveIds = new Set(active.map(s=> s.id));
-      let newOn = false;
-      currentActiveIds.forEach(id => { if (!lastActiveIds.has(id)) newOn = true; });
-      if (newOn) beep();
-      lastActiveIds = currentActiveIds;
-
-      activeCountEl.textContent = active.length;
-      updEl.textContent = 'Оновлено: ' + new Date().toLocaleTimeString('uk-UA');
-
-      gridEl.innerHTML = states.map(s=>`
-        <div class="oblast ${s.alert ? 'on' : ''}">
-          <div>
-            <div><strong>${s.name ?? ('Область #' + s.id)}</strong></div>
-            <div class="muted" style="font-size:12px">${s.alert ? 'ТРИВОГА' : 'спокійно'}${s.changed ? ' · ' + fmtTime(s.changed) : ''}</div>
-          </div>
-          <span class="badge ${s.alert ? 'on' : ''}">${s.alert ? 'A' : 'N'}</span>
-        </div>
-      `).join('');
-
-      feedEl.innerHTML = active.length
-        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong> — повітряна тривога</div><div class="muted">${fmtTime(s.changed)}</div></div>`).join('')
-        : '<div class="muted">Наразі тривог немає 🎉</div>';
-    }
-
-    async function refresh(){
-      try{
-        const r = await fetch(stateUrl(), {cache:'no-store', mode:'cors'});
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
-        renderStates(data);
-        statusEl.textContent = 'Статус: онлайн';
-      }catch(e){
-        statusEl.textContent = 'Статус: помилка';
-        console.error('fetch states error:', e);
-      }
-    }
-
-    function startSSE(){
-      try{
-        const es = new EventSource(liveUrl());
-        es.onopen = () => { statusEl.textContent = 'Статус: live підключено'; };
-        es.onerror = () => { statusEl.textContent = 'Статус: live недоступне, резервний режим'; };
-        es.onmessage = () => refresh();
-      }catch(e){
-        statusEl.textContent = 'Статус: live недоступне';
-      }
-    }
-
-    refresh();
-    setInterval(refresh, 10000);
-    startSSE();
-  </script>
-</body>
-</html>
-  </style>
-</head>
-<body>
-  <header>
-    <div class="title">Мапа тривог — live</div>
-    <div class="chip">Джерело: siren.pp.ua</div>
-    <div class="chip" id="status">Статус: ініціалізація…</div>
-    <div class="toolbar">
-      <button id="soundBtn" aria-pressed="false">🔕 Звук</button>
-      <span class="pill" id="updated">—</span>
-    </div>
-  </header>
-
-  <main>
-    <section class="card">
-      <div class="row">
-        <div>
-          <div class="muted">Активні області (повітряна тривога)</div>
-          <div class="count" id="activeCount">—</div>
-        </div>
-        <span class="pill">Оновлення: live (SSE) + резерв 10 с</span>
-      </div>
-    </section>
-
-    <section class="cards" id="grid"></section>
-
-    <section class="card">
-      <div class="muted">Останні сповіщення</div>
-      <div id="feed" class="list">Завантаження…</div>
-    </section>
-  </main>
-
-  <footer>
-    Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank">siren.pp.ua</a>
-  </footer>
-
-  <script>
-    const BASE = "https://siren.pp.ua/api";
-    const stateUrl = () => `${BASE}/states?short`;
-    const liveUrl  = () => `${BASE}/states/live`;
-
-    const statusEl = document.getElementById('status');
-    const updEl = document.getElementById('updated');
-    const activeCountEl = document.getElementById('activeCount');
-    const gridEl = document.getElementById('grid');
-    const feedEl = document.getElementById('feed');
-    const soundBtn = document.getElementById('soundBtn');
-
-    let lastActiveIds = new Set();
-    let soundOn = false;
-    let audioCtx;
-
-    soundBtn.addEventListener('click', () => {
-      soundOn = !soundOn;
-      soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
-      soundBtn.textContent = soundOn ? '🔔 Звук' : '🔕 Звук';
-      if (soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    });
-
-    function beep() {
-      if (!soundOn) return;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
-      o.type = 'sine'; o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
-      o.start(); o.stop(audioCtx.currentTime + 0.6);
-    }
-
-    function fmtTime(iso){ return new Date(iso).toLocaleString('uk-UA'); }
-
-    function renderStates(data){
-      const states = data.states.sort((a,b)=>a.name.localeCompare(b.name));
-      const active = states.filter(s=>s.alert);
-
-      const currentActiveIds = new Set(active.map(s=>s.id));
-      let newOn = false;
-      currentActiveIds.forEach(id => { if (!lastActiveIds.has(id)) newOn = true; });
-      if (newOn) beep();
-      lastActiveIds = currentActiveIds;
-
-      activeCountEl.textContent = active.length;
-      updEl.textContent = "Оновлено: " + new Date().toLocaleTimeString("uk-UA");
-
-      gridEl.innerHTML = states.map(s => `
-        <div class="oblast ${s.alert ? 'on':''}">
-          <div>
-            <strong>${s.name}</strong><br>
-            <span class="muted">${s.alert ? 'ТРИВОГА' : 'спокійно'} · ${fmtTime(s.changed)}</span>
-          </div>
-          <span class="badge ${s.alert?'on':''}">${s.alert?'A':'N'}</span>
-        </div>`).join("");
-
-      feedEl.innerHTML = active.length
-        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong></div><div class="muted">${fmtTime(s.changed)}</div></div>`).join("")
-        : '<div class="muted">Наразі тривог немає 🎉</div>';
-    }
-
-    async function refresh(){
+    function fmtTime(s) {
       try {
-        const r = await fetch(stateUrl());
-        const data = await r.json();
-        renderStates(data);
-        statusEl.textContent = "Статус: онлайн";
-      } catch {
-        statusEl.textContent = "Статус: помилка";
-      }
+        const d = new Date(s);
+        return isNaN(d) ? "—" : d.toLocaleString("uk-UA", { timeZone: KYIV_TZ, hour12: false });
+      } catch { return "—"; }
     }
 
-    function startSSE(){
-      const es = new EventSource(liveUrl());
-      es.onopen = () => { statusEl.textContent = "Статус: live підключено"; };
-      es.onerror = () => { statusEl.textContent = "Статус: live недоступне"; };
-      es.onmessage = () => refresh();
-    }
+    function render(states) {
+      const active = states.filter(s => s.alert);
+      active.sort((a,b) => a.name.localeCompare(b.name, "uk"));
 
-    refresh();
-    setInterval(refresh,10000);
-    startSSE();
-  </script>
-</body>
-</html>
-      if (!soundOn) return;
-      try{
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.type = 'sine'; o.frequency.value = 880;
-        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
-        o.start(); o.stop(audioCtx.currentTime + 0.6);
-      }catch(e){/* ignore */}
-    }
+      const container = document.getElementById("list");
+      container.innerHTML = "";
 
-    function fmtTime(iso){
-      try{ return new Date(iso).toLocaleString('uk-UA'); }catch{ return '—'; }
-    }
+      if (active.length === 0) {
+        container.innerHTML = `
+          <section class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Наразі немає активних повітряних тривог на рівні областей.</p>
+          </section>`;
+      } else {
+        for (const s of active) {
+          const card = document.createElement("section");
+          card.className = "rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm";
 
-    function renderStates(data){
-      if (!data || !Array.isArray(data.states)) return;
-      const states = data.states.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-      const active = states.filter(s=> !!s.alert);
+          const header = document.createElement("div");
+          header.className = "flex items-start justify-between gap-3";
+          header.innerHTML = `
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span class="pulse-dot" style="color:#ef4444"></span>${s.name}
+              </h2>
+              <div class="mt-1 flex flex-wrap gap-2 text-xs">
+                <span class="inline-flex items-center rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">Повітряна тривога</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 text-right">
+              початок/зміна: <span class="mono">${fmtTime(s.changed)}</span>
+            </div>
+          `;
+          card.appendChild(header);
 
-      // Звук, якщо з'явилися нові активні області
-      const currentActiveIds = new Set(active.map(s=> s.id));
-      let newOn = false;
-      currentActiveIds.forEach(id => { if (!lastActiveIds.has(id)) newOn = true; });
-      if (newOn) beep();
-      lastActiveIds = currentActiveIds;
+          const body = document.createElement("div");
+          body.className = "mt-3";
+          body.innerHTML = `
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              На жаль, публічне безключове джерело надає лише регіональний рівень. Перелік міст/громад області наразі недоступний без офіційного ключа API.
+            </p>`;
+          card.appendChild(body);
 
-      activeCountEl.textContent = active.length;
-      updEl.textContent = 'Оновлено: ' + new Date().toLocaleTimeString('uk-UA');
-
-      // Сітка по всіх областях
-      gridEl.innerHTML = states.map(s=>`
-        <div class="oblast ${s.alert ? 'on' : ''}">
-          <div>
-            <div><strong>${s.name ?? ('Область #' + s.id)}</strong></div>
-            <div class="muted" style="font-size:12px">${s.alert ? 'ТРИВОГА' : 'спокійно'}${s.changed ? ' · з ' + fmtTime(s.changed) : ''}</div>
-          </div>
-          <span class="badge ${s.alert ? 'on' : ''}">${s.alert ? 'A' : 'N'}</span>
-        </div>
-      `).join('');
-
-      // Список тільки активних для "стрічки"
-      feedEl.innerHTML = active.length
-        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong> — повітряна тривога</div><div class="muted">${fmtTime(s.changed)}</div></div>`).join('')
-        : '<div class="muted">Наразі тривог немає 🎉</div>';
-    }
-
-    async function fetchOnce(){
-      const r = await fetch(stateUrl(), {cache:'no-store'});
-      if(!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }
-
-    async function refresh(){
-      try{
-        statusEl.textContent = 'Статус: оновлення…';
-        const data = await fetchOnce();
-        renderStates(data);
-        statusEl.textContent = 'Статус: онлайн';
-      }catch(e){
-        statusEl.textContent = 'Статус: помилка підключення';
-        console.error(e);
-      }
-    }
-
-    // Live підписка через SSE. На будь-яку подію — просто робимо свіжий запит станів.
-    function startSSE(){
-      try{
-        const es = new EventSource(liveUrl());
-        es.onopen = () => { statusEl.textContent = 'Статус: live підключено'; };
-        es.onerror = () => { statusEl.textContent = 'Статус: live недоступне, резервний режим'; };
-        es.onmessage = (ev) => {
-          // Деякі реалізації надсилають payload з оновленням; ми для надійності просто рефрешимо список
-          refresh();
-        };
-        return es;
-      }catch(e){
-        statusEl.textContent = 'Статус: live недоступне';
-        return null;
-      }
-    }
-
-    // Резерв: опитування раз на 10 с
-    setInterval(refresh, 10000);
-
-    // Перший рендер
-    refresh();
-    startSSE();
-  </script>
-</body>
-</html>        <div><span style="background:${COLORS.warn}"></span> Активна тривога</div>
-        <div><span style="background:${COLORS.unk}"></span> Невідомо</div>
-      `;
-      return div;
-    };
-    legend.addTo(map);
-  </script>
-</body>
-</html>
-        const since = getDistrictAlertSince(name) || '';
-
-        const html = `
-          <div class="info">
-            <strong>${name || '—'}</strong><br/>
-            Статус: <strong>${status === 'alert' ? 'Тривога' : status === 'no_alert' ? 'Немає тривоги' : 'Невідомо'}</strong><br/>
-            ${since ? 'Почалося: ' + new Date(since).toLocaleString() : ''}
-          </div>
-        `;
-
-        L.popup().setLatLng(layer.getBounds().getCenter()).setContent(html).openOn(map);
-      });
-    }
-
-    // Загрузить тревоги и применить к районам
-    function loadAlertsAndStyle(){
-      // Попытка получить промежуточный формат тревог: маппинг по названиям районов
-      fetch(ALERTS_API_URL).then(r => r.json()).then(raw => {
-        // Преобразуй raw в формат [{district_name, status, since}, ...]
-        alertsData = mapAlertsToDistricts(raw);
-
-        // Применяем стили: проходим по всем фичам GeoJSON
-        districtsLayer.eachLayer(layer => {
-          const feat = layer.feature;
-          const name = feat.properties && (feat.properties.name || feat.properties.NA_UA || feat.properties.NAME);
-          const status = getDistrictStatusByName(name) || 'no_alert';
-          applyStyleToFeature(layer, status);
-        });
-      }).catch(err => {
-        console.error('Ошибка получения тревог:', err);
-      });
-    }
-
-    // Пример функции: преобразует ответ API в единый массив объектов.
-    // Здесь мы даём несколько стратегий сопоставления — по district_name, по uid и т.д.
-    function mapAlertsToDistricts(raw){
-      // Если API alerts.in.ua вернул структуру, содержащую items с oblasts/regions,
-      // то нужно адаптировать эту функцию. Здесь — пример общего преобразования.
-
-      // Пример: если API возвращает массив с полями 'region', 'raion' или 'settlement'
-      // тогда нужно собрать status для каждого raion.
-
-      try{
-        // если raw уже в нужном формате — вернуть
-        if(Array.isArray(raw) && raw.length && raw[0].district_name) return raw;
-
-        // Простейшая попытка: искать вложенные alerts по районам
-        const out = [];
-
-        // Если raw имеет поле 'items' или 'alerts'
-        const candidates = raw.items || raw.alerts || raw;
-
-        if(Array.isArray(candidates)){
-          candidates.forEach(it => {
-            // Попробуем найти имя района
-            const name = it.raion || it.district || it.district_name || it.name || (it.region && it.region.name);
-            if(!name) return;
-            // Решим статус (примерное правило)
-            const status = (it.status && it.status === 'active') || (it.alert && it.alert === true) ? 'alert' : 'no_alert';
-            const since = it.since || it.started_at || it.time || null;
-            out.push({district_name: name, status, since});
-          });
+          container.appendChild(card);
         }
-        return out;
-      }catch(e){
-        console.warn('Не удалось распарсить тревоги автоматически', e);
-        return [];
+      }
+
+      document.getElementById("regionsCount").textContent = active.length;
+      document.getElementById("updated").textContent =
+        new Date().toLocaleString("uk-UA", { timeZone: KYIV_TZ, hour12: false });
+    }
+
+    async function tick() {
+      try {
+        const json = await ADAPTER.load();
+        const states = ADAPTER.parse(json);
+        render(states);
+      } catch (e) {
+        console.error(e);
+        document.getElementById("list").innerHTML = `
+          <div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">
+            Не вдалося завантажити дані. Перевір джерело <code>${ENDPOINT}</code> або заміни його на іншу відкриту адресу у змінній <code>ENDPOINT</code>.
+          </div>`;
+      } finally {
+        setTimeout(tick, POLL_MS);
       }
     }
 
-    // Поиск статуса района по имени (учитывает небольшие расхождения регистра)
-    function getDistrictStatusByName(name){
-      if(!name || !alertsData) return null;
-      const find = alertsData.find(a => a.district_name && a.district_name.toLowerCase() === name.toLowerCase());
-      return find ? find.status : null;
-    }
-
-    function getDistrictAlertSince(name){
-      if(!name || !alertsData) return null;
-      const find = alertsData.find(a => a.district_name && a.district_name.toLowerCase() === name.toLowerCase());
-      return find ? find.since : null;
-    }
-
-    // Простая auto-refresh каждые 30 секунд
-    setInterval(() => {
-      if(districtsLayer) loadAlertsAndStyle();
-    }, 30_000);
-
-    // ---------- Легенда ----------
-    const legend = L.control({position: 'bottomright'});
-    legend.onAdd = function(){
-      const div = L.DomUtil.create('div','legend');
-      div.innerHTML = `
-        <div><span style="background:${COLORS.no_alert}"></span> Немає тривоги</div>
-        <div><span style="background:${COLORS.alert}"></span> Активна тривога</div>
-        <div><span style="background:${COLORS.unknown}"></span> Невідомо</div>
-      `;
-      return div;
-    };
-    legend.addTo(map);
-
+    tick();
   </script>
 </body>
 </html>
