@@ -1,0 +1,13 @@
+{
+  "name": "alerts-scraper",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "eventsource-parser": "^1.1.0",
+    "playwright": "^1.47.0",
+    "cors": "^2.8.5"
+  }
+}
