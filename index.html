@@ -13,7 +13,6 @@
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
     header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(11,18,32,.9),rgba(11,18,32,.8));backdrop-filter:blur(6px);padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .left, .right {display:flex;gap:12px;align-items:center}
     .title{font-weight:800}
     .chip{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--chip);border-radius:999px;padding:6px 12px;font-size:12px}
     main{max-width:1100px;margin:0 auto;padding:18px}
@@ -26,12 +25,10 @@
     .list{margin-top:8px}
     .item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
     .item:last-child{border-bottom:0}
-
     .oblast{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px}
     .badge{font-size:12px;border:1px solid var(--chip);border-radius:999px;padding:2px 8px}
     .on{color:var(--bad);border-color:rgba(255,141,141,.35);animation:pulse 1.5s infinite}
     @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,141,141,.35)}70%{box-shadow:0 0 0 8px rgba(255,141,141,0)}100%{box-shadow:0 0 0 0 rgba(255,141,141,0)}}
-
     .toolbar{display:flex;gap:8px;flex-wrap:wrap}
     button{background:#13223a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
     button[aria-pressed="true"]{outline:2px solid var(--brand)}
@@ -41,44 +38,40 @@
 </head>
 <body>
   <header>
-    <div class="left">
-      <div class="title">Мапа тривог — live</div>
-      <span class="chip">Джерело: <strong>siren.pp.ua</strong></span>
-      <span class="chip" id="status">Статус: ініціалізація…</span>
-    </div>
-    <div class="right toolbar">
-      <button id="soundBtn" aria-pressed="false" title="Звук при новій тривозі">🔔 Звук</button>
+    <div class="title">Мапа тривог — live</div>
+    <div class="chip">Джерело: siren.pp.ua</div>
+    <div class="chip" id="status">Статус: ініціалізація…</div>
+    <div class="toolbar">
+      <button id="soundBtn" aria-pressed="false">🔕 Звук</button>
       <span class="pill" id="updated">—</span>
     </div>
   </header>
 
   <main>
-    <section class="card" style="margin-bottom:12px">
+    <section class="card">
       <div class="row">
         <div>
           <div class="muted">Активні області (повітряна тривога)</div>
           <div class="count" id="activeCount">—</div>
         </div>
-        <div>
-          <span class="pill">Оновлення: live (SSE) + резерв 10 с</span>
-        </div>
+        <span class="pill">Оновлення: live (SSE) + резерв 10 с</span>
       </div>
     </section>
 
     <section class="cards" id="grid"></section>
 
-    <section class="card" style="margin-top:12px">
-      <div class="muted" style="margin-bottom:8px">Останні сповіщення</div>
+    <section class="card">
+      <div class="muted">Останні сповіщення</div>
       <div id="feed" class="list">Завантаження…</div>
     </section>
   </main>
 
   <footer>
-    Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank" rel="noopener">siren.pp.ua</a> · Оновлення в реальному часі через SSE
+    Зроблено без токенів. Дані: <a href="https://siren.pp.ua/" target="_blank">siren.pp.ua</a>
   </footer>
 
   <script>
-    const BASE = "https://siren.pp.ua/api"; // публічний фід без ключів
+    const BASE = "https://siren.pp.ua/api";
     const stateUrl = () => `${BASE}/states?short`;
     const liveUrl  = () => `${BASE}/states/live`;
 
@@ -96,11 +89,75 @@
     soundBtn.addEventListener('click', () => {
       soundOn = !soundOn;
       soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
-      soundBtn.textContent = soundOn ? '🔔 Звук увімкнено' : '🔕 Звук вимкнено';
+      soundBtn.textContent = soundOn ? '🔔 Звук' : '🔕 Звук';
       if (soundOn && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     });
 
     function beep() {
+      if (!soundOn) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+      o.start(); o.stop(audioCtx.currentTime + 0.6);
+    }
+
+    function fmtTime(iso){ return new Date(iso).toLocaleString('uk-UA'); }
+
+    function renderStates(data){
+      const states = data.states.sort((a,b)=>a.name.localeCompare(b.name));
+      const active = states.filter(s=>s.alert);
+
+      const currentActiveIds = new Set(active.map(s=>s.id));
+      let newOn = false;
+      currentActiveIds.forEach(id => { if (!lastActiveIds.has(id)) newOn = true; });
+      if (newOn) beep();
+      lastActiveIds = currentActiveIds;
+
+      activeCountEl.textContent = active.length;
+      updEl.textContent = "Оновлено: " + new Date().toLocaleTimeString("uk-UA");
+
+      gridEl.innerHTML = states.map(s => `
+        <div class="oblast ${s.alert ? 'on':''}">
+          <div>
+            <strong>${s.name}</strong><br>
+            <span class="muted">${s.alert ? 'ТРИВОГА' : 'спокійно'} · ${fmtTime(s.changed)}</span>
+          </div>
+          <span class="badge ${s.alert?'on':''}">${s.alert?'A':'N'}</span>
+        </div>`).join("");
+
+      feedEl.innerHTML = active.length
+        ? active.map(s=>`<div class="item"><div><strong style="color:var(--bad)">${s.name}</strong></div><div class="muted">${fmtTime(s.changed)}</div></div>`).join("")
+        : '<div class="muted">Наразі тривог немає 🎉</div>';
+    }
+
+    async function refresh(){
+      try {
+        const r = await fetch(stateUrl());
+        const data = await r.json();
+        renderStates(data);
+        statusEl.textContent = "Статус: онлайн";
+      } catch {
+        statusEl.textContent = "Статус: помилка";
+      }
+    }
+
+    function startSSE(){
+      const es = new EventSource(liveUrl());
+      es.onopen = () => { statusEl.textContent = "Статус: live підключено"; };
+      es.onerror = () => { statusEl.textContent = "Статус: live недоступне"; };
+      es.onmessage = () => refresh();
+    }
+
+    refresh();
+    setInterval(refresh,10000);
+    startSSE();
+  </script>
+</body>
+</html>
       if (!soundOn) return;
       try{
         const o = audioCtx.createOscillator();
