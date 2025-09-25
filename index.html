@@ -3,145 +3,176 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Telegram — Повітряні тривоги</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="dark light" />
+  <title>Telegram — Повітряні тривоги (читабельно & нові зверху)</title>
+  <meta name="color-scheme" content="light dark" />
   <style>
     :root{
-      --accent:#2563eb;
-      --success:#10b981;
-      --danger:#ef4444;
-      --muted:#6b7280;
-      --input-bg:#0f1724;
-      --input-text:#f8fafc;
-      --input-placeholder:#94a3b8;
-      --card-bg:#ffffff;
+      --accent: #2563eb;
+      --success: #059669;
+      --danger: #dc2626;
+      --muted: #6b7280;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e6edf6;
+      --text: #0f1724;
+      --muted-text: #475569;
+      --input-bg: #0b1220;
+      --input-text: #eef2ff;
+      --pill-bg: rgba(37,99,235,0.08);
+      --new-bg: #fff7ed;
+      --new-border: #f59e0b;
     }
-    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; padding:0; background: #f8fafc; color: #0f1724;}
-    .btn{ position:relative; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border-radius:.5rem; background:var(--accent); color:white; font-weight:600; cursor:pointer; user-select:none; overflow:hidden; transform:translateZ(0); transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease; box-shadow: 0 6px 18px rgba(37,99,235,0.12); }
-    .btn.secondary{ background:#374151; box-shadow: 0 6px 18px rgba(15,23,42,0.08); }
-    .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); box-shadow:none; }
-    .btn[disabled]{ opacity:.6; pointer-events:none; transform:none; box-shadow:none; }
-
-    .ripple{ position:absolute; border-radius:999px; transform:scale(0); background:rgba(255,255,255,0.25); animation:ripple .6s linear; pointer-events:none; z-index:1; }
-    @keyframes ripple{ to { transform: scale(4); opacity: 0; } }
-
-    .badge{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:999px; font-weight:600; font-size:13px; }
-    .badge.open{ background: rgba(16,185,129,0.08); color: var(--success); border:1px solid rgba(16,185,129,0.12); }
-    .badge.closed{ background: rgba(239,68,68,0.06); color: var(--danger); border:1px solid rgba(239,68,68,0.08); }
-    .badge.unknown{ background: rgba(148,163,184,0.06); color: var(--muted); border:1px solid rgba(148,163,184,0.06); }
-
-    .status-flash{ animation: flash 1200ms ease-in-out; box-shadow: 0 0 0 3px rgba(99,102,241,0.12), 0 6px 18px rgba(99,102,241,0.08); }
-    @keyframes flash{ 0%{ box-shadow: 0 0 0 0 rgba(99,102,241,0.18); } 40%{ box-shadow: 0 0 8px 6px rgba(99,102,241,0.12); } 100%{ box-shadow: none; } }
-
-    .spinner{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.25); border-top-color:rgba(255,255,255,0.9); animation:spin .8s linear infinite; }
-    .spinner.small{ width:12px; height:12px; border-width:2px; border-top-color:rgba(0,0,0,0.7); border-bottom-color:rgba(0,0,0,0.08); }
-    @keyframes spin{ to { transform: rotate(360deg); } }
-
-    input[type="text"], input[type="number"], select, .input-like { border-radius:.5rem; padding:.5rem .6rem; border:1px solid rgba(255,255,255,0.06); outline:none; background:var(--input-bg); color:var(--input-text); transition:box-shadow .12s ease, border-color .12s ease; }
-    input::placeholder{ color: var(--input-placeholder); opacity:1; }
-    input:focus, select:focus{ box-shadow: 0 6px 18px rgba(37,99,235,0.08); border-color: rgba(99,102,241,0.5); }
-
-    .card{ background:var(--card-bg); }
-    .small{ font-size:13px; }
-    .live-announcer{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
-
-    pre{ white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:13px; color:inherit; }
-
     @media (prefers-color-scheme: dark){
-      :root{ --card-bg: #0b1220; --input-bg:#0b1220; --input-text:#eef2ff; --input-placeholder:#94a3b8; }
-      body{ background:#05060a; color:#e6eef8; }
+      :root{
+        --bg: #030312;
+        --card-bg: #071226;
+        --card-border: #0b2236;
+        --text: #e6eef8;
+        --muted-text: #9aa8bf;
+        --input-bg: #0b1220;
+        --input-text: #eef2ff;
+        --pill-bg: rgba(37,99,235,0.12);
+        --new-bg: #2b1b05;
+        --new-border: #f59e0b;
+      }
     }
 
-    .container { max-width:1100px; margin:24px auto; padding:16px; }
-    .controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .controls .left { display:flex; gap:8px; align-items:center; }
-    .controls .right { margin-left:auto; display:flex; gap:8px; align-items:center; }
-    .card-block { border-radius:12px; padding:14px; background:var(--card-bg); box-shadow: 0 2px 10px rgba(2,6,23,0.04); }
+    body{
+      margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg); color: var(--text); -webkit-font-smoothing:antialiased;
+    }
+    .container{ max-width:1100px; margin:28px auto; padding:18px; }
+
+    header { display:flex; gap:12px; align-items:flex-end; }
+    h1{ margin:0; font-size:20px; font-weight:700; }
+    .muted{ color:var(--muted-text); font-size:13px; }
+
+    .controls{ margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:var(--card-bg); border:1px solid var(--card-border); padding:12px; border-radius:12px; box-shadow: 0 6px 20px rgba(2,6,23,0.04); }
+    .controls label{ font-size:13px; color:var(--muted-text); }
+    input[type="text"], input[type="number"], select { border-radius:8px; padding:8px 10px; border:1px solid var(--card-border); background:transparent; color:var(--text); min-height:38px; }
+    input::placeholder{ color:#9aa8bf; }
+
+    .btn{ display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:10px; cursor:pointer; border:0; background:var(--accent); color:white; font-weight:600; box-shadow:0 6px 18px rgba(37,99,235,0.12); }
+    .btn.secondary{ background:#374151; box-shadow:none; color:white; }
+    .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); }
+    .btn[disabled]{ opacity:.6; pointer-events:none; }
+
+    .badge{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--pill-bg); color:var(--accent); font-weight:700; font-size:13px; }
+
+    .status { display:flex; gap:10px; align-items:center; margin-top:12px; }
+    #diag { color:var(--danger); font-size:13px; }
+
+    /* список областей і постів */
+    #summary { margin-top:16px; }
+    .region-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-top:12px; }
+    .region-header { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .region-title{ font-weight:700; font-size:16px; }
+    .region-meta{ color:var(--muted-text); font-size:13px; }
+
+    .post{ background: linear-gradient(180deg, transparent 0%, transparent 100%); border-radius:10px; padding:10px; margin-top:10px; border:1px solid rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:8px; }
+    .post .top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .post .title{ font-weight:700; font-size:15px; color:var(--text); }
+    .post .time{ color:var(--muted-text); font-size:13px; min-width:110px; text-align:right; }
+    .post .body{ color:var(--muted-text); font-size:14px; white-space:pre-wrap; }
+    .post .actions{ display:flex; gap:8px; align-items:center; margin-top:6px; }
+    .post a.open{ background:transparent; border:1px solid var(--card-border); color:var(--accent); padding:6px 10px; border-radius:8px; text-decoration:none; font-weight:600; }
+
+    /* сирі пости */
+    .raw-block { margin-top:16px; border-radius:10px; background:var(--card-bg); border:1px dashed var(--card-border); padding:12px; color:var(--muted-text); font-size:13px; }
+
+    /* нові пости: підсвітка + анімація */
+    .post.new { background: var(--new-bg); border:2px solid var(--new-border); box-shadow: 0 8px 20px rgba(245,158,11,0.06); animation: newFlash 2.2s ease; }
+    @keyframes newFlash {
+      0% { transform: translateY(-6px); }
+      40% { transform: translateY(0); }
+      100% { transform: translateY(0); }
+    }
+    .pill-new { font-size:12px; padding:4px 8px; background:var(--new-border); color:white; border-radius:999px; font-weight:700; }
+
+    /* утиліти */
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size:13px; color:var(--muted-text); }
+    .small{ font-size:13px; color:var(--muted-text); }
+
+    @media (max-width:800px){
+      .controls{ flex-direction:column; align-items:stretch; }
+      input[type="text"]{ width:100%; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <header style="display:flex; align-items:flex-end; gap:12px; margin-bottom:14px;">
+    <header>
       <div>
-        <h1 style="margin:0; font-size:20px; font-weight:700;">Telegram — Перегляд каналів (повітряні тривоги)</h1>
-        <div style="font-size:13px; color:var(--muted); margin-top:6px;">Дані через RSSHub і ваш Cloudflare Worker</div>
+        <h1>Telegram — Повітряні тривоги</h1>
+        <div class="muted">Дані з Telegram через RSSHub / ваш Cloudflare Worker (нові пости зверху)</div>
       </div>
-      <div style="margin-left:auto; text-align:right; font-size:12px; color:var(--muted);">
-        Оновлено: <span id="updated" class="mono">—</span><br />
-        Worker: <span id="workerUrl" style="font-weight:600; color:var(--accent)">dawn-bird-9d4d.nevaznoa855.workers.dev</span>
+      <div style="margin-left:auto; text-align:right;">
+        <div class="mono">Оновлено: <span id="updated">—</span></div>
+        <div class="small">Worker: <span id="workerHost">dawn-bird-9d4d.nevaznoa855.workers.dev</span></div>
       </div>
     </header>
 
-    <section class="card-block">
-      <div class="controls">
-        <div class="left">
-          <label style="font-size:13px; color:var(--muted);">Канал / посилання / ID</label>
-          <input id="channelInput" type="text" style="width:360px" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або 123456789" />
-          <button id="loadBtn" class="btn">Завантажити</button>
-          <button id="forceBtn" class="btn secondary">Примусово оновити</button>
-          <button id="resetBackoffBtn" class="btn ghost" title="Скинути backoff (працює завжди)">Скинути backoff</button>
-        </div>
-
-        <div class="right">
-          <label style="font-size:13px; color:var(--muted);">Постів:</label>
-          <select id="countSelect" style="padding:6px 8px; border-radius:8px;">
-            <option value="10">10</option>
-            <option value="20" selected>20</option>
-            <option value="30">30</option>
-            <option value="50">50</option>
-          </select>
-
-          <label style="font-size:13px; color:var(--muted);">Інтервал, сек:</label>
-          <input id="intervalInput" type="number" min="10" value="30" style="width:70px; padding:6px 8px; border-radius:8px;" />
-
-          <label style="font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px;">
-            <input id="showRawAlways" type="checkbox" checked />
-            Показувати сирі пости
-          </label>
-        </div>
+    <div class="controls" role="region" aria-label="Налаштування">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <label class="small" for="channelInput">Канал</label>
+        <input id="channelInput" type="text" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або ID" />
+        <button id="loadBtn" class="btn">Завантажити</button>
+        <button id="forceBtn" class="btn secondary">Примусово оновити</button>
+        <button id="resetBackoffBtn" class="btn ghost" title="Скидає backoff і негайно перезапитує">Скинути backoff</button>
       </div>
 
-      <div style="margin-top:12px; display:flex; gap:12px; align-items:center;">
-        <div id="channelBadge" class="badge unknown">Статус: <span id="statusText" style="margin-left:8px">—</span></div>
-        <div id="diag" style="color:var(--danger); font-size:13px"></div>
+      <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+        <label class="small" for="countSelect">Постів</label>
+        <select id="countSelect"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select>
+
+        <label class="small" for="intervalInput">Інтервал (c)</label>
+        <input id="intervalInput" type="number" min="10" value="30" style="width:80px" />
+
+        <label style="display:flex; gap:6px; align-items:center;"><input id="showRawAlways" type="checkbox" checked /> <span class="small">Показувати сирі пости</span></label>
       </div>
-    </section>
+    </div>
 
-    <div id="summary" style="margin-top:12px"></div>
-    <div id="out" style="margin-top:12px"></div>
+    <div class="status">
+      <div id="channelBadge" class="badge">Статус: <span id="statusText" style="margin-left:6px">—</span></div>
+      <div id="diag" style="margin-left:6px"></div>
+    </div>
 
-    <div class="live-announcer" aria-live="polite" id="announcer"></div>
+    <div id="summary"></div>
+    <div id="out"></div>
 
-    <footer style="margin-top:18px; color:var(--muted); font-size:13px;">Порада: при проблемах натисніть Скинути backoff або Примусово оновити</footer>
+    <div id="raw" class="raw-block" style="display:none;"></div>
   </div>
 
   <script>
+    // Налаштування
     const WORKER_BASE = "https://dawn-bird-9d4d.nevaznoa855.workers.dev/?channel=";
-    const WORKER_HOST = "dawn-bird-9d4d.nevaznoa855.workers.dev";
     const KYIV_TZ = "Europe/Kyiv";
-
     const EMPTY_THRESHOLD = 2;
     const MAX_BACKOFF_MS = 300000;
     const INITIAL_POLL_MS = 30000;
 
-    let POLL_MS = INITIAL_POLL_MS;
-    let POLL_TIMER = null;
-    let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10);
+    // Стан
     let backoffMs = parseInt(localStorage.getItem("backoffMs")||"0",10) || 0;
+    let consecutiveEmpty = parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0;
+    let POLL_TIMER = null;
 
+    // DOM
+    const channelInput = document.getElementById("channelInput");
     const loadBtn = document.getElementById("loadBtn");
     const forceBtn = document.getElementById("forceBtn");
     const resetBackoffBtn = document.getElementById("resetBackoffBtn");
-    const channelInput = document.getElementById("channelInput");
+    const countSelect = document.getElementById("countSelect");
+    const intervalInput = document.getElementById("intervalInput");
+    const showRawAlways = document.getElementById("showRawAlways");
+    const out = document.getElementById("out");
+    const summary = document.getElementById("summary");
+    const rawBlock = document.getElementById("raw");
     const statusText = document.getElementById("statusText");
     const channelBadge = document.getElementById("channelBadge");
-    const announcer = document.getElementById("announcer");
     const diag = document.getElementById("diag");
-    document.getElementById("workerUrl").textContent = WORKER_HOST;
+    document.getElementById("updated").textContent = "—";
 
-    function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch { return new Date().toString(); } }
-
+    // Утиліти
     function normalizeChannelInput(raw){
       if(!raw) return "";
       raw = raw.trim();
@@ -149,334 +180,343 @@
       try{
         const u = new URL(raw);
         const p = u.pathname.replace(/^\/+|\/+$/g,"");
-        if(p.length>0){
-          return p.split("/")[0];
-        }
+        if(p.length>0) return p.split("/")[0];
         return raw;
-      }catch(e){
-        return raw;
-      }
+      }catch(e){ return raw; }
     }
-
-    function buildWorkerUrl(channel, extra){
-      const e = extra ? "&" + extra.replace(/^[&?]+/,"") : "";
-      return WORKER_BASE + encodeURIComponent(channel) + e;
-    }
-
+    function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch(e){ return new Date().toString(); } }
+    function buildWorkerUrl(channel, extra){ const e = extra ? "&"+extra.replace(/^[&?]+/,"") : ""; return WORKER_BASE + encodeURIComponent(channel) + e; }
     async function fetchFromWorker(channel, extra){
       const url = buildWorkerUrl(channel, extra);
       const r = await fetch(url, { cache: "no-store" });
       if(!r.ok){
-        const txt = await r.text().catch(()=>"" );
-        throw new Error("HTTP "+r.status + " " + txt.slice(0,400));
+        const txt = await r.text().catch(()=>"");
+        throw new Error("HTTP "+r.status + " " + (txt.slice? txt.slice(0,400) : String(txt)));
       }
       return r.json();
     }
 
+    function parseDateToMillis(pubDate){
+      if(!pubDate) return 0;
+      const d = Date.parse(pubDate);
+      if(!isNaN(d)) return d;
+      // try fallback: if time-only text (like "19:50") try today's date
+      const timeOnly = pubDate.trim().match(/^\d{1,2}:\d{2}$/);
+      if(timeOnly){
+        const now = new Date();
+        const [hh,mm] = pubDate.split(":").map(Number);
+        const dd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+        return dd.getTime();
+      }
+      return 0;
+    }
+
+    function formatKyiv(pubDate){
+      try{
+        const d = new Date(pubDate);
+        if(isNaN(d)) return pubDate || "";
+        return d.toLocaleString("uk-UA",{timeZone:KYIV_TZ, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"});
+      }catch(e){ return pubDate||""; }
+    }
+
+    function saveLastPosts(posts){
+      try{ localStorage.setItem("lastPosts", JSON.stringify(posts)); localStorage.setItem("lastFetchedAt", new Date().toISOString()); localStorage.setItem("consecutiveEmpty","0"); consecutiveEmpty = 0; }catch(e){}
+    }
+    function loadLastPosts(){ try{ const s = localStorage.getItem("lastPosts"); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+
     function setChannelStatus(open, text, silent=false){
-      const prev = localStorage.getItem("lastStatus") || "unknown";
       if(open){
-        channelBadge.classList.remove("closed","unknown");
-        channelBadge.classList.add("open");
+        channelBadge.classList.remove("closed"); channelBadge.classList.add("badge");
         statusText.textContent = text || "відкритий";
-        announcer.textContent = "Канал відкритий";
         localStorage.setItem("lastStatus","open");
       } else {
-        channelBadge.classList.remove("open","unknown");
-        channelBadge.classList.add("closed");
-        statusText.textContent = text || "закритий";
-        announcer.textContent = "Канал закритий або недоступний для RSSHub";
-        localStorage.setItem("lastStatus","closed");
+        channelBadge.classList.add("closed"); statusText.textContent = text || "закритий"; localStorage.setItem("lastStatus","closed");
       }
-      if(!silent && prev !== localStorage.getItem("lastStatus")){
+      if(!silent){
         channelBadge.classList.add("status-flash");
-        setTimeout(()=>channelBadge.classList.remove("status-flash"),1400);
+        setTimeout(()=>channelBadge.classList.remove("status-flash"), 1200);
       }
     }
 
-    function saveSuccessfulPosts(posts){
+    // Основна функція: отримує дані, обробляє і відображає з урахуванням нових постів
+    async function analyze(channel, options={force:false}){
       try{
-        localStorage.setItem("lastPosts", JSON.stringify(posts));
-        localStorage.setItem("lastFetchedAt", new Date().toISOString());
-        localStorage.setItem("consecutiveEmpty", "0");
-        consecutiveEmpty = 0;
-      }catch(e){}
+        diag.textContent = "";
+        loadBtn.setAttribute("disabled","true");
+        forceBtn.setAttribute("disabled","true");
+        // resetBackoffBtn intentionally NOT disabled
+
+        if(backoffMs > 0 && !options.force){
+          diag.textContent = "Backoff активний: чекати " + Math.round(backoffMs/1000) + " c";
+          await new Promise(r=>setTimeout(r, backoffMs));
+        }
+
+        const resp = await fetchFromWorker(channel);
+        // resp може бути у різних форматах: items, data.items, data (jsonfeed)
+        let items = [];
+        if(Array.isArray(resp?.items)) items = resp.items;
+        else if(Array.isArray(resp?.data?.items)) items = resp.data.items;
+        else if(Array.isArray(resp)) items = resp;
+        else if(Array.isArray(resp?.data)) items = resp.data;
+
+        // нормалізація: привести до {id, link, title, description, pubDate}
+        const normalized = (items||[]).map(it => {
+          const id = it.id || it.link || it.url || it.guid || (it.link?it.link:JSON.stringify(it)).slice(0,200);
+          const link = it.url || it.link || it.guid || "";
+          const title = it.title || "";
+          const description = (it.content_html || it.description || it.content || "").replace(/<\/?[^>]+(>|$)/g,"").trim();
+          const pubDate = it.date_published || it.pubDate || it.isoDate || it.pubdate || "";
+          const ts = parseDateToMillis(pubDate);
+          return { id, link, title, description, pubDate, ts };
+        });
+
+        // сортування: по ts desc (новіші зверху)
+        normalized.sort((a,b)=> (b.ts || 0) - (a.ts || 0));
+
+        if(normalized.length > 0){
+          // знайти які пости нові порівняно з lastPosts (за id або link)
+          const saved = loadLastPosts() || [];
+          const savedIds = new Set((saved||[]).map(p=>p.id||p.link));
+          const newPosts = [];
+          for(const p of normalized){
+            const key = p.id || p.link || (p.title + p.pubDate);
+            if(!savedIds.has(key)) newPosts.push(p);
+          }
+
+          // Якщо є нові — вставити їх зверху, підсвітити
+          if(newPosts.length>0){
+            // комбінуємо: нові + збережені (але відсортуємо повністю нормально)
+            const merged = normalized; // normalized вже відсортований
+            renderAndAnimateDiff(merged, newPosts, channel);
+            saveLastPosts(merged);
+          } else {
+            // немає нових — просто показати відсортований список
+            renderAll(normalized, channel, false);
+            saveLastPosts(normalized);
+          }
+
+          setChannelStatus(true, "відкритий");
+          resetLocalBackoffOnSuccess();
+        } else {
+          // порожня відповідь — показати збережені пости, якщо є
+          consecutiveEmpty = (parseInt(localStorage.getItem("consecutiveEmpty")||"0",10)||0) + 1;
+          localStorage.setItem("consecutiveEmpty", String(consecutiveEmpty));
+          const saved = loadLastPosts() || [];
+          if(saved.length>0){
+            renderAll(saved, channel, true);
+            setChannelStatus(false, "тимчасово недоступний", true);
+            diag.textContent = "Отримано порожню відповідь; показано останні відомі пости. Порожніх відповідей поспіль: " + consecutiveEmpty;
+            if(consecutiveEmpty >= EMPTY_THRESHOLD) setChannelStatus(false, "закритий", false);
+          } else {
+            renderAll([], channel, false);
+            setChannelStatus(false, "закритий", false);
+            diag.textContent = "Канал не повернув постів і збережених постів немає.";
+          }
+          increaseBackoff();
+        }
+      }catch(e){
+        increaseBackoff();
+        setChannelStatus(false, "недоступний", true);
+        const saved = loadLastPosts() || [];
+        if(saved.length>0){
+          renderAll(saved, normalizeChannelInput(channelInput.value||""), true);
+          diag.textContent = "Помилка: " + String(e) + " — показано збережені пости. Backoff: " + Math.round(backoffMs/1000) + " c";
+        } else {
+          out.innerHTML = '<div style="padding:12px; border-radius:10px; background:#fff0f0; color:var(--danger)">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
+          diag.textContent = String(e);
+        }
+      } finally {
+        loadBtn.removeAttribute("disabled");
+        forceBtn.removeAttribute("disabled");
+        document.getElementById("updated").textContent = nowStr();
+      }
     }
 
-    function loadSavedPosts(){
-      try{
-        const raw = localStorage.getItem("lastPosts");
-        if(!raw) return null;
-        return JSON.parse(raw);
-      }catch{return null}
+    function renderAll(posts, channel, isStale){
+      // збудувати групи по областях, оскільки користувач просив карту/області раніше,
+      // тут ми залишаємо алгоритм виявлення областей та розкладаємо пости по них
+      const groups = {};
+      const O = ["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
+      for(const p of posts){
+        const text = (p.title || "") + " " + (p.description || "");
+        const found = new Set();
+        for(const o of O){
+          const re = new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
+          if(re.test(text)) found.add(o);
+        }
+        const oblasts = Array.from(found);
+        if(oblasts.length===0){
+          // покласти в "Інші" якщо ніде не знайдено
+          if(!groups["Інші"]) groups["Інші"] = [];
+          groups["Інші"].push(p);
+        } else {
+          for(const o of oblasts){ if(!groups[o]) groups[o]=[]; groups[o].push(p); }
+        }
+      }
+
+      // рендер: спочатку очищення
+      out.innerHTML = "";
+      // показати кожну область з її постами
+      const oblastsSorted = Object.keys(groups).sort((a,b)=>a.localeCompare(b,"uk"));
+      for(const oblast of oblastsSorted){
+        const card = document.createElement("section");
+        card.className = "region-card";
+        const header = document.createElement("div");
+        header.className = "region-header";
+        header.innerHTML = `<div class="region-title">${oblast}</div><div class="region-meta">згадок: <strong>${groups[oblast].length}</strong></div>`;
+        card.appendChild(header);
+
+        for(const p of groups[oblast]){
+          const node = makePostNode(p, channel);
+          card.appendChild(node);
+        }
+
+        out.appendChild(card);
+      }
+
+      // сирі пости
+      if(showRawAlways.checked){
+        renderRaw(posts);
+      } else {
+        rawBlock.style.display = "none";
+      }
     }
 
-    function getSavedFetchedAt(){
-      return localStorage.getItem("lastFetchedAt") || null;
+    function makePostNode(p, channel){
+      const div = document.createElement("article");
+      div.className = "post";
+      div.dataset.id = p.id || p.link || (p.title + p.pubDate);
+
+      const top = document.createElement("div"); top.className = "top";
+      const title = document.createElement("div"); title.className = "title"; title.textContent = p.title || (p.description ? p.description.slice(0,140) : "(без заголовка)");
+      const time = document.createElement("div"); time.className = "time"; time.textContent = formatKyiv(p.pubDate || p.ts || "");
+
+      top.appendChild(title); top.appendChild(time);
+      div.appendChild(top);
+
+      const body = document.createElement("div"); body.className = "body"; body.textContent = p.description || "";
+      div.appendChild(body);
+
+      const actions = document.createElement("div"); actions.className = "actions";
+      const open = document.createElement("a"); open.className = "open"; open.href = p.link || ("https://t.me/" + encodeURIComponent(channel)); open.target="_blank"; open.rel="noopener noreferrer"; open.textContent = "Відкрити в Telegram";
+      actions.appendChild(open);
+
+      // показити "НОВЕ" мітку для тимчасового підсвічування — якщо елемент має .new, додати мітку
+      div.appendChild(actions);
+      return div;
+    }
+
+    function renderRaw(posts){
+      rawBlock.style.display = "block";
+      rawBlock.innerHTML = "<strong>Сирі останні пости</strong>";
+      if(posts.length===0){
+        rawBlock.innerHTML += "<div style='margin-top:8px;'>Немає постів.</div>";
+        return;
+      }
+      for(const p of posts){
+        const wrap = document.createElement("div");
+        wrap.style.marginTop = "8px";
+        wrap.style.padding = "8px";
+        wrap.style.borderRadius = "8px";
+        wrap.style.background = "rgba(0,0,0,0.02)";
+        const title = document.createElement("div"); title.style.fontWeight="700"; title.textContent = p.title || "";
+        const when = document.createElement("div"); when.style.fontSize="13px"; when.style.color="var(--muted-text)"; when.textContent = formatKyiv(p.pubDate||p.ts||"");
+        const pre = document.createElement("pre"); pre.style.whiteSpace="pre-wrap"; pre.textContent = p.description || "";
+        const link = document.createElement("a"); link.href = p.link || ("https://t.me/" + encodeURIComponent(normalizeChannelInput(channelInput.value||""))); link.target="_blank"; link.rel="noopener noreferrer"; link.textContent = "Відкрити в Telegram"; link.style.display="inline-block"; link.style.marginTop="8px"; link.className="open";
+
+        wrap.appendChild(title); wrap.appendChild(when); wrap.appendChild(pre); wrap.appendChild(link);
+        rawBlock.appendChild(wrap);
+      }
+    }
+
+    // При виявленні нових постів — показати (перезаписати список, але анімувати тільки нові)
+    function renderAndAnimateDiff(allPosts, newPosts, channel){
+      // allPosts — вже відсортований (newest first)
+      renderAll(allPosts, channel, false);
+
+      if(newPosts.length===0) return;
+      // для кожного нового поста знайти DOM-елемент і підсвітити
+      // шукаємо елементи за data-id
+      const ids = new Set(newPosts.map(p=>p.id||p.link||(p.title+p.pubDate)));
+      // трохи затримка для того, щоб елементи вставились в DOM
+      setTimeout(()=>{
+        const nodes = out.querySelectorAll("[data-id]");
+        let flashed = 0;
+        for(const n of nodes){
+          const nid = n.dataset.id;
+          if(ids.has(nid)){
+            n.classList.add("new");
+            // додати мітку "НОВЕ"
+            const pill = document.createElement("span"); pill.className="pill-new"; pill.textContent="НОВЕ"; pill.style.marginLeft="8px";
+            const titleEl = n.querySelector(".title");
+            if(titleEl && !titleEl.querySelector(".pill-new")) titleEl.appendChild(pill);
+            // прибрати клас через 7 секунд
+            setTimeout(()=>{
+              n.classList.remove("new");
+              const p = titleEl.querySelector(".pill-new");
+              if(p) p.remove();
+            }, 7000);
+            flashed++;
+            // опціонально: коротке прокручування до першого нового
+            if(flashed===1){
+              n.scrollIntoView({behavior:"smooth", block:"start"});
+            }
+          }
+        }
+      }, 120);
     }
 
     function increaseBackoff(){
       backoffMs = backoffMs ? Math.min(backoffMs*2, MAX_BACKOFF_MS) : 5000;
       localStorage.setItem("backoffMs", String(backoffMs));
     }
-
-    function resetBackoff(){
+    function resetLocalBackoffOnSuccess(){
       backoffMs = 0;
       consecutiveEmpty = 0;
       localStorage.removeItem("backoffMs");
       localStorage.removeItem("consecutiveEmpty");
-      diag.textContent = "Backoff скинуто.";
     }
 
-    function getStaleAge(){
-      const at = getSavedFetchedAt();
-      if(!at) return null;
-      const d = new Date(at);
-      const diff = Math.floor((Date.now() - d.getTime())/1000);
-      if(diff < 60) return diff + " c";
-      if(diff < 3600) return Math.floor(diff/60) + " хв";
-      return Math.floor(diff/3600) + " год";
-    }
-
-    function renderResults(groups, posts, channel, isStale=false){
-      const out = document.getElementById("out");
-      out.innerHTML = "";
-      const summary = document.getElementById("summary");
-      const regionsCount = Object.keys(groups).length;
-      const staleLabel = isStale ? (' <span style="color:#b45309; font-size:12px">(застаріло: '+(getStaleAge()||"невідомо")+")</span>") : "";
-      summary.innerHTML = '<div style="display:flex; gap:10px; align-items:center;"><div style="display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fee2e2; color:#b91c1c"><span style="width:10px;height:10px;border-radius:999px;background:#ef4444;display:inline-block"></span>Областей згадано: <strong style="margin-left:6px">'+regionsCount+'</strong></div><div style="color:var(--muted); font-size:13px;">Постів проаналізовано: <strong>'+posts.length+'</strong>'+staleLabel+'</div></div>';
-
-      if(Object.keys(groups).length>0){
-        for(const oblast of Object.keys(groups).sort((a,b)=>a.localeCompare(b,"uk"))){
-          const block = document.createElement("section");
-          block.style.borderRadius = "12px";
-          block.style.padding = "12px";
-          block.style.background = "var(--card-bg)";
-          block.style.marginTop = "10px";
-          const header = document.createElement("div");
-          header.style.display = "flex";
-          header.style.justifyContent = "space-between";
-          header.innerHTML = '<h2 style="margin:0; font-weight:700">'+oblast+'</h2><div style="color:var(--muted); font-size:13px">знайдено згадок: <strong>'+groups[oblast].length+'</strong></div>';
-          block.appendChild(header);
-          const list = document.createElement("ul");
-          list.style.marginTop = "8px";
-          list.style.listStyle = "none";
-          for(const item of groups[oblast]){
-            const li = document.createElement("li");
-            li.style.padding = "10px";
-            li.style.borderRadius = "8px";
-            li.style.background = "#f8fafc";
-            li.style.marginBottom = "8px";
-            const titleRow = document.createElement("div");
-            titleRow.style.display = "flex";
-            titleRow.style.justifyContent = "space-between";
-            titleRow.innerHTML = '<div style="font-weight:600">'+(item.title||"")+'</div><div style="color:var(--muted); font-size:13px">'+new Date(item.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</div>';
-            li.appendChild(titleRow);
-            const pre = document.createElement("div");
-            pre.style.marginTop = "6px";
-            pre.style.fontSize = "14px";
-            pre.style.color = "#0f1724";
-            pre.innerText = (item.description||"").replace(/<\/?[^>]+(>|$)/g,"");
-            li.appendChild(pre);
-            const openBtn = document.createElement("a");
-            openBtn.className = "btn ghost";
-            openBtn.style.display = "inline-block";
-            openBtn.style.marginTop = "8px";
-            openBtn.href = item.link || ("https://t.me/"+encodeURIComponent(channel));
-            openBtn.target = "_blank";
-            openBtn.rel = "noopener noreferrer";
-            openBtn.innerText = "Відкрити в Telegram";
-            li.appendChild(openBtn);
-            list.appendChild(li);
-          }
-          block.appendChild(list);
-          out.appendChild(block);
-        }
-      }
-
-      const rawBlock = document.createElement("section");
-      rawBlock.style.borderRadius = "12px";
-      rawBlock.style.padding = "12px";
-      rawBlock.style.background = "var(--card-bg)";
-      rawBlock.style.marginTop = "12px";
-      rawBlock.innerHTML = "<strong>Сирі останні пости</strong>";
-      if(posts.length===0){
-        rawBlock.innerHTML += '<div style="margin-top:10px; padding:10px; border-radius:8px; background:#f8fafc; color:var(--muted)">Немає доступних постів або канал не публічний / заблокований для RSSHub.</div>';
-      } else {
-        for(const p of posts){
-          const pdiv = document.createElement("div");
-          pdiv.style.marginTop = "10px";
-          pdiv.style.padding = "10px";
-          pdiv.style.borderRadius = "8px";
-          pdiv.style.background = "#f8fafc";
-          const titleRow = document.createElement("div");
-          titleRow.style.display = "flex";
-          titleRow.style.justifyContent = "space-between";
-          titleRow.innerHTML = '<div style="font-weight:600">'+(p.title||"")+'</div><div style="color:var(--muted); font-size:13px">'+new Date(p.pubDate).toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false})+'</div>';
-          pdiv.appendChild(titleRow);
-          const pre = document.createElement("pre");
-          pre.style.marginTop = "8px";
-          pre.innerText = (p.description||"").replace(/<\/?[^>]+(>|$)/g,"");
-          pdiv.appendChild(pre);
-          const openBtn = document.createElement("a");
-          openBtn.className = "btn ghost";
-          openBtn.style.display = "inline-block";
-          openBtn.style.marginTop = "8px";
-          openBtn.href = p.link || ("https://t.me/"+encodeURIComponent(channel));
-          openBtn.target = "_blank";
-          openBtn.rel = "noopener noreferrer";
-          openBtn.innerText = "Відкрити в Telegram";
-          pdiv.appendChild(openBtn);
-          rawBlock.appendChild(pdiv);
-        }
-      }
-      out.appendChild(rawBlock);
-      document.getElementById("updated").textContent = nowStr();
-    }
-
-    async function analyze(channel, options = {force:false}) {
-      try {
-        setChannelStatus(false, "перевіряємо...", true);
-        loadBtn.setAttribute("disabled","true");
-        forceBtn.setAttribute("disabled","true");
-        // resetBackoffBtn intentionally NOT disabled so user can always reset backoff
-        diag.textContent = "";
-
-        if(backoffMs > 0 && !options.force) {
-          diag.textContent = "Backoff активний: чекати " + Math.round(backoffMs/1000) + " c";
-          await new Promise(r=>setTimeout(r, backoffMs));
-        }
-
-        const start = Date.now();
-        const data = await fetchFromWorker(channel);
-        const took = Date.now() - start;
-        let items = [];
-
-        if(Array.isArray(data?.items)) {
-          items = data.items;
-        } else if(Array.isArray(data?.data?.items)) {
-          items = data.data.items;
-        } else if(Array.isArray(data)) {
-          items = data;
-        } else if(Array.isArray(data?.rss?.channel?.item)) {
-          items = data.rss.channel.item;
-        }
-
-        const maxPosts = parseInt(document.getElementById("countSelect").value,10) || 20;
-
-        if(items && items.length > 0) {
-          const posts = items.slice(0, maxPosts).map(it => ({ title: it.title||"", description: it.description||it.content_html||it.content||"", pubDate: it.date_published||it.pubDate||it.isoDate||new Date().toISOString(), link: it.url || it.link || it.guid || "" }));
-          saveSuccessfulPosts(posts);
-          resetBackoff();
-          consecutiveEmpty = 0;
-          localStorage.setItem("consecutiveEmpty", "0");
-          setChannelStatus(true, "відкритий");
-          const groups = {};
-          for(const p of posts){
-            const text = (p.title||"")+" "+(p.description||"");
-            const O = ["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
-            const found = new Set();
-            for(const o of O){
-              const re = new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
-              if(re.test(text)) found.add(o);
-            }
-            const oblasts = Array.from(found);
-            for(const o of oblasts){ if(!groups[o]) groups[o]=[]; groups[o].push(p); }
-          }
-          renderResults(groups, posts, channel, false);
-          diag.textContent = "Оновлено за "+Math.round(took/10)/100+" c";
-        } else {
-          consecutiveEmpty = (parseInt(localStorage.getItem("consecutiveEmpty")||"0",10) || 0) + 1;
-          localStorage.setItem("consecutiveEmpty", String(consecutiveEmpty));
-          const savedPosts = loadSavedPosts();
-          if(savedPosts && savedPosts.length>0){
-            setChannelStatus(false, "тимчасово недоступний", true);
-            const groups = {};
-            for(const p of savedPosts){
-              const text = (p.title||"")+" "+(p.description||"");
-              const O = ["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
-              const found = new Set();
-              for(const o of O){
-                const re = new RegExp("\\b"+o.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\$&")+"\\b","iu");
-                if(re.test(text)) found.add(o);
-              }
-              const oblasts = Array.from(found);
-              for(const o of oblasts){ if(!groups[o]) groups[o]=[]; groups[o].push(p); }
-            }
-            renderResults(groups, savedPosts, channel, true);
-            diag.textContent = "Отримано порожню відповідь від RSSHub. Показуються останні відомі пости. Порожніх відповідей поспіль: " + consecutiveEmpty;
-            if(consecutiveEmpty >= EMPTY_THRESHOLD){
-              setChannelStatus(false, "закритий", false);
-            }
-          } else {
-            setChannelStatus(false, "закритий", false);
-            renderResults({}, [], channel, false);
-            diag.textContent = "Канал не повернув пости і збережених постів немає. Порожніх відповідей поспіль: " + consecutiveEmpty;
-          }
-          increaseBackoff();
-        }
-      } catch(e) {
-        increaseBackoff();
-        setChannelStatus(false, "недоступний", true);
-        const savedPosts = loadSavedPosts() || [];
-        if(savedPosts.length>0){
-          renderResults({}, savedPosts, normalizeChannelInput(channelInput.value||""), true);
-          diag.textContent = "Помилка мережі/серверу: " + String(e) + ". Показуються збережені пости. Backoff: " + Math.round(backoffMs/1000) + " c";
-        } else {
-          document.getElementById("out").innerHTML = '<div style="padding:12px; border-radius:8px; background:#fee2e2; color:#b91c1c">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
-          diag.textContent = String(e);
-        }
-      } finally {
-        loadBtn.removeAttribute("disabled");
-        forceBtn.removeAttribute("disabled");
-        // resetBackoffBtn intentionally left enabled so user can reset anytime
-      }
-    }
-
-    function startPolling(channel){
-      if(POLL_TIMER) clearInterval(POLL_TIMER);
-      const sec = Math.max(10, parseInt(document.getElementById("intervalInput").value,10) || 30);
-      POLL_MS = sec * 1000;
-      const effectiveInterval = Math.max(POLL_MS, backoffMs || 0) || POLL_MS;
-      POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), effectiveInterval);
-      analyze(channel).catch(()=>{});
-      document.getElementById("intervalInput").value = sec;
-    }
-
-    loadBtn.addEventListener("click", function(ev){
+    // Обробники подій
+    loadBtn.addEventListener("click", ()=> {
       const raw = channelInput.value.trim();
-      if(!raw) return alert("Вкажіть канал або ID (наприклад kpszsu або https://t.me/kpszsu).");
+      if(!raw) return alert("Вкажіть канал або ID.");
       const channel = normalizeChannelInput(raw);
       localStorage.setItem("lastChannel", channel);
       startPolling(channel);
     });
-
-    forceBtn.addEventListener("click", function(ev){
+    forceBtn.addEventListener("click", ()=> {
       const raw = channelInput.value.trim();
       if(!raw) return;
-      const channel = normalizeChannelInput(raw);
-      backoffMs = 0;
-      localStorage.removeItem("backoffMs");
-      analyze(channel, {force:true}).catch(()=>{});
+      backoffMs = 0; localStorage.removeItem("backoffMs");
+      analyze(normalizeChannelInput(raw), {force:true});
+    });
+    resetBackoffBtn.addEventListener("click", ()=> {
+      backoffMs = 0; consecutiveEmpty = 0;
+      localStorage.removeItem("backoffMs"); localStorage.removeItem("consecutiveEmpty");
+      diag.textContent = "Backoff скинуто вручну.";
+      const raw = channelInput.value.trim();
+      if(raw) analyze(normalizeChannelInput(raw), {force:true});
     });
 
-    resetBackoffBtn.addEventListener("click", function(){
-      // this button should always be available; allow immediate reset
-      resetBackoff();
-      const channel = normalizeChannelInput(channelInput.value||"");
-      if(channel) analyze(channel, {force:true}).catch(()=>{});
-    });
+    function startPolling(channel){
+      if(POLL_TIMER) clearInterval(POLL_TIMER);
+      const sec = Math.max(10, parseInt(intervalInput.value,10) || 30);
+      const effective = Math.max(sec*1000, backoffMs || 0);
+      POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), effective);
+      analyze(channel).catch(()=>{});
+    }
 
-    document.addEventListener("DOMContentLoaded", function(){
+    // Ініціалізація при завантаженні сторінки
+    document.addEventListener("DOMContentLoaded", ()=>{
       const saved = localStorage.getItem("lastChannel");
       if(saved) channelInput.value = saved;
       const initial = normalizeChannelInput(channelInput.value||"kpszsu");
       if(initial) startPolling(initial);
     });
 
-    window.addEventListener("beforeunload", function(){
-      try{ localStorage.setItem("lastChannel", normalizeChannelInput(channelInput.value||"")); }catch(e){}
-    });
+    // Короткий дебаг — показ host
+    document.getElementById("workerHost").textContent = new URL(WORKER_BASE).host;
   </script>
 </body>
 </html>
