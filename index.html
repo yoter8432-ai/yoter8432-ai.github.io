@@ -3,15 +3,85 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Повітряні тривоги з Telegram — перегляд каналів</title>
+  <title>Перегляд Telegram-каналів — повітряні тривоги</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="dark light" />
   <style>
-    .pulse-dot{width:10px;height:10px;border-radius:9999px;position:relative;display:inline-block;margin-right:.5rem;background:currentColor}
-    .pulse-dot::after{content:"";position:absolute;inset:-6px;border-radius:9999px;border:2px solid currentColor;opacity:.6;animation:pulse 1.5s infinite}
-    @keyframes pulse{0%{transform:scale(.6);opacity:.6}70%{transform:scale(1.3);opacity:0}100%{opacity:0}}
-    .mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"} pre{white-space:pre-wrap;word-break:break-word}
-    .small{font-size:13px}
+    :root{
+      --accent:#2563eb;
+      --success:#10b981;
+      --danger:#ef4444;
+      --muted:#6b7280;
+      --glass: rgba(255,255,255,0.04);
+    }
+
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+
+    .btn{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.5rem .75rem;
+      border-radius:.5rem;
+      background:var(--accent);
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+      user-select:none;
+      overflow:hidden;
+      transform:translateZ(0);
+      transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+    }
+    .btn:active{ transform: translateY(1px) scale(.995); box-shadow: 0 4px 12px rgba(37,99,235,0.10); }
+    .btn.secondary{ background:#374151; box-shadow: 0 6px 18px rgba(15,23,42,0.08); }
+    .btn.ghost{ background:transparent; color:var(--accent); border:1px solid rgba(37,99,235,0.12); box-shadow:none; }
+    .btn[disabled]{ opacity:.6; pointer-events:none; transform:none; box-shadow:none; }
+
+    .ripple{
+      position:absolute;
+      border-radius:999px;
+      transform:scale(0);
+      background:rgba(255,255,255,0.35);
+      animation:ripple .6s linear;
+      pointer-events:none;
+      z-index:1;
+    }
+    @keyframes ripple{ to { transform: scale(4); opacity: 0; } }
+
+    .click-anim{ transition: transform .12s ease; }
+    .click-anim:active{ transform: scale(.98); }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      padding:.25rem .5rem;
+      border-radius:999px;
+      font-weight:600;
+      font-size:13px;
+    }
+    .badge.open{ background: rgba(16,185,129,0.12); color: var(--success); border:1px solid rgba(16,185,129,0.12); }
+    .badge.closed{ background: rgba(239,68,68,0.08); color: var(--danger); border:1px solid rgba(239,68,68,0.08); }
+
+    .spinner{
+      width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);border-top-color:rgba(255,255,255,0.9); animation:spin .8s linear infinite;
+    }
+    .spinner.small{ width:12px;height:12px;border-width:2px;border-top-color:rgba(0,0,0,0.7); border-bottom-color:rgba(0,0,0,0.08); }
+    @keyframes spin{ to { transform: rotate(360deg); } }
+
+    input[type="text"], input[type="number"], select{
+      border-radius:.5rem; padding:.5rem .6rem; border:1px solid #e5e7eb; background:white; outline:none;
+      transition:box-shadow .12s ease, border-color .12s ease;
+    }
+    input:focus, select:focus{ box-shadow: 0 6px 18px rgba(37,99,235,0.08); border-color: #93c5fd; }
+
+    .status-row{ display:flex; gap:0.75rem; align-items:center; }
+
+    .live-announcer{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+
+    pre{ white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:13px; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -19,7 +89,7 @@
     <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold">Перегляд Telegram-каналів — повітряні тривоги</h1>
-        <p class="text-sm text-gray-500">Беремо пости через RSSHub + ваш Cloudflare Worker. Можна вказати будь-який канал, посилання або ID.</p>
+        <p class="text-sm text-gray-500">Показує останні пости; визначає, чи канал доступний для RSSHub. Кнопки анімовані при кліку.</p>
       </div>
       <div class="text-right text-xs text-gray-500">
         Оновлено: <span id="updated" class="mono">—</span><br />
@@ -29,15 +99,18 @@
 
     <section class="mb-4 grid gap-3 sm:grid-cols-2 items-end">
       <div class="flex gap-2 items-center">
-        <label class="text-xs text-gray-500">Канал / ID / посилання</label>
-        <input id="channelInput" class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-sm w-[320px]" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або 123456789" />
-        <button id="loadBtn" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm">Завантажити</button>
-        <button id="forceBtn" class="px-3 py-2 rounded-md bg-gray-600 text-white text-sm">Примусово оновити</button>
+        <label class="text-xs text-gray-500">Канал / посилання / ID</label>
+        <input id="channelInput" type="text" class="w-[340px]" value="kpszsu" placeholder="kpszsu або https://t.me/kpszsu або 123456789" />
+        <button id="loadBtn" class="btn click-anim" aria-live="polite">Завантажити</button>
+        <button id="forceBtn" class="btn secondary click-anim">Примусово оновити</button>
+        <div class="ml-2 status-row">
+          <div id="channelBadge" class="badge closed">Статус: <span id="statusText" style="margin-left:.5rem">невідомий</span></div>
+        </div>
       </div>
 
       <div class="flex gap-3 items-center justify-end">
         <label class="text-xs text-gray-500">Постів:</label>
-        <select id="countSelect" class="px-2 py-2 rounded-md text-sm">
+        <select id="countSelect">
           <option value="10">10</option>
           <option value="20" selected>20</option>
           <option value="30">30</option>
@@ -45,10 +118,10 @@
         </select>
 
         <label class="text-xs text-gray-500">Інтервал, сек:</label>
-        <input id="intervalInput" type="number" min="10" value="30" class="w-20 px-2 py-2 rounded-md text-sm" />
+        <input id="intervalInput" type="number" min="10" value="30" class="w-20" />
 
         <label class="inline-flex items-center gap-2 text-xs text-gray-500">
-          <input id="showRawAlways" type="checkbox" checked class="h-4 w-4" />
+          <input id="showRawAlways" type="checkbox" checked />
           Показувати сирі пости завжди
         </label>
       </div>
@@ -60,8 +133,10 @@
 
     <div id="diag" class="mt-4 text-xs text-red-600 dark:text-red-400"></div>
 
+    <div class="live-announcer" aria-live="polite" id="announcer"></div>
+
     <footer class="mt-8 text-xs text-gray-500">
-      Порада: якщо бачите помилку 429 — збільшіть інтервал опитування до 60+ сек або використайте іншу інстанцію RSSHub у воркері.
+      Порада: якщо бачите помилку 429 — збільшіть інтервал опитування до 60+ сек або змініть інстанцію RSSHub у воркері.
     </footer>
   </div>
 
@@ -71,15 +146,51 @@
 
     let POLL_MS = 30000;
     let POLL_TIMER = null;
+    let lastStatus = "";
 
-    const OBLASTS = [
-      "Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька",
-      "Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська",
-      "Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська",
-      "м. Київ","м. Севастополь"
-    ];
+    const loadBtn = document.getElementById("loadBtn");
+    const forceBtn = document.getElementById("forceBtn");
+    const channelInput = document.getElementById("channelInput");
+    const statusText = document.getElementById("statusText");
+    const channelBadge = document.getElementById("channelBadge");
+    const announcer = document.getElementById("announcer");
 
     function nowStr(){ try { return new Date().toLocaleString("uk-UA",{timeZone:KYIV_TZ,hour12:false}); } catch { return new Date().toString(); } }
+
+    function makeRipple(el, x, y){
+      const rect = el.getBoundingClientRect();
+      const ripple = document.createElement("span");
+      ripple.className = "ripple";
+      const size = Math.max(rect.width, rect.height) * 0.8;
+      ripple.style.width = size + "px";
+      ripple.style.height = size + "px";
+      ripple.style.left = (x - rect.left - size/2) + "px";
+      ripple.style.top = (y - rect.top - size/2) + "px";
+      el.appendChild(ripple);
+      setTimeout(()=>{ ripple.remove(); }, 700);
+    }
+
+    function animateClick(el, ev){
+      if(!ev) return;
+      makeRipple(el, ev.clientX, ev.clientY);
+      el.animate([{ transform: "scale(1)"},{ transform: "scale(.98)"},{ transform: "scale(1)"}], { duration: 140, easing: "ease-out" });
+    }
+
+    function setChannelStatus(open, text){
+      if(open){
+        channelBadge.classList.remove("closed");
+        channelBadge.classList.add("open");
+        statusText.textContent = text || "відкритий";
+        announcer.textContent = "Канал відкритий";
+        lastStatus = "open";
+      } else {
+        channelBadge.classList.remove("open");
+        channelBadge.classList.add("closed");
+        statusText.textContent = text || "закритий";
+        announcer.textContent = "Канал закритий або недоступний для RSSHub";
+        lastStatus = "closed";
+      }
+    }
 
     function normalizeChannelInput(raw){
       if(!raw) return "";
@@ -89,12 +200,10 @@
         const u = new URL(raw);
         const p = u.pathname.replace(/^\/+|\/+$/g,"");
         if(p.length>0){
-          // якщо в URL вказано шлях до поста, беремо першу частину (channel)
           return p.split("/")[0];
         }
         return raw;
       }catch(e){
-        // не URL, повертаємо як є
         return raw;
       }
     }
@@ -103,8 +212,19 @@
       return WORKER_BASE + encodeURIComponent(channel);
     }
 
+    async function fetchFromWorker(channel){
+      const url = buildWorkerUrl(channel);
+      const r = await fetch(url, { cache: "no-store" });
+      if(!r.ok){
+        const txt = await r.text().catch(()=>"");
+        throw new Error("HTTP "+r.status + " " + txt.slice(0,200));
+      }
+      return r.json();
+    }
+
     function findOblastsInText(text){
       if(!text) return [];
+      const OBLASTS = ["Вінницька","Волинська","Дніпропетровська","Донецька","Житомирська","Закарпатська","Запорізька","Івано-Франківська","Київська","Кіровоградська","Луганська","Львівська","Миколаївська","Одеська","Полтавська","Рівненська","Сумська","Тернопільська","Харківська","Херсонська","Хмельницька","Черкаська","Чернівецька","Чернігівська","м. Київ","м. Севастополь"];
       const found = new Set();
       const t = text.normalize("NFC");
       for(const o of OBLASTS){
@@ -195,22 +315,25 @@
       document.getElementById("updated").textContent = nowStr();
     }
 
-    async function fetchFromWorker(channel){
-      const url = buildWorkerUrl(channel);
-      const r = await fetch(url, { cache: "no-store" });
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      return r.json();
-    }
-
-    async function analyze(channel){
+    async function analyze(channel, options = {force:false}){
       try{
-        document.getElementById("diag").textContent = "";
+        setChannelStatus(false, "перевіряємо...");
+        loadBtn.setAttribute("disabled","true");
+        forceBtn.setAttribute("disabled","true");
+        const start = Date.now();
         const data = await fetchFromWorker(channel);
+        const duration = Date.now() - start;
         const items = Array.isArray(data?.items)?data.items:(Array.isArray(data)?data:[]);
         const maxPosts = parseInt(document.getElementById("countSelect").value,10) || 20;
         const posts = [];
         for(const it of items.slice(0, maxPosts)){
           posts.push({ title: it.title||"", description: it.description||it.content||"", pubDate: it.pubDate||it.isoDate||new Date().toISOString() });
+        }
+
+        if(items.length>0){
+          setChannelStatus(true, "відкритий");
+        } else {
+          setChannelStatus(false, "закритий");
         }
 
         const groups = {};
@@ -225,9 +348,14 @@
         }
 
         renderResults(groups, posts);
+        document.getElementById("diag").textContent = "Завантажено за "+Math.round(duration/10)/100+" c";
       }catch(e){
+        setChannelStatus(false, "недоступний");
         document.getElementById("out").innerHTML = '<div class="p-4 rounded-xl border border-red-300/50 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">Не вдалося завантажити дані. Помилка: '+String(e)+'</div>';
         document.getElementById("diag").textContent = String(e);
+      }finally{
+        loadBtn.removeAttribute("disabled");
+        forceBtn.removeAttribute("disabled");
       }
     }
 
@@ -236,31 +364,32 @@
       const sec = Math.max(10, parseInt(document.getElementById("intervalInput").value,10) || 30);
       POLL_MS = sec * 1000;
       POLL_TIMER = setInterval(()=>analyze(channel).catch(()=>{}), POLL_MS);
-      // Початковий виклик
       analyze(channel).catch(()=>{});
       document.getElementById("intervalInput").value = sec;
     }
 
-    document.getElementById("loadBtn").addEventListener("click", function(){
-      const raw = document.getElementById("channelInput").value.trim();
+    loadBtn.addEventListener("click", function(ev){
+      animateClick(loadBtn, ev);
+      const raw = channelInput.value.trim();
       if(!raw) return alert("Вкажіть канал або ID (наприклад kpszsu або https://t.me/kpszsu).");
       const channel = normalizeChannelInput(raw);
       startPolling(channel);
     });
 
-    document.getElementById("forceBtn").addEventListener("click", function(){
-      const raw = document.getElementById("channelInput").value.trim();
+    forceBtn.addEventListener("click", function(ev){
+      animateClick(forceBtn, ev);
+      const raw = channelInput.value.trim();
       if(!raw) return;
       const channel = normalizeChannelInput(raw);
-      analyze(channel).catch(()=>{});
+      analyze(channel, {force:true}).catch(()=>{});
     });
 
-    document.getElementById("channelInput").addEventListener("keyup", function(e){
-      if(e.key === "Enter") document.getElementById("loadBtn").click();
+    channelInput.addEventListener("keyup", function(e){
+      if(e.key === "Enter") loadBtn.click();
     });
 
     document.addEventListener("DOMContentLoaded", function(){
-      document.getElementById("loadBtn").click();
+      loadBtn.click();
     });
   </script>
 </body>
